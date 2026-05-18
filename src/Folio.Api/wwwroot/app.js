@@ -2,9 +2,21 @@ const API = '/api/journal';
 
 let journal = [];
 let pendingTopicDate = null;
+let activeEditor = null;
+
+// ── API helpers ──────────────────────────────────────────────────────────────
+
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, options);
+  if (res.status === 401) { location.href = '/auth/login'; return null; }
+  return res;
+}
+
+// ── Load & render ────────────────────────────────────────────────────────────
 
 async function loadJournal() {
-  const res = await fetch(API);
+  const res = await apiFetch(API);
+  if (!res) return;
   if (!res.ok) { showError('Fehler beim Laden des Journals.'); return; }
   journal = await res.json();
   renderJournal();
@@ -24,36 +36,19 @@ function renderJournal() {
     return;
   }
 
-  for (const day of filtered) {
-    container.appendChild(renderDay(day, query));
-  }
+  for (const day of filtered) container.appendChild(renderDay(day, query));
 }
 
 function filterJournal(days, query) {
-  return days
-    .map(day => {
-      const dateMatch = day.date.includes(query);
-      const matchedTopics = day.topics.filter(t =>
-        t.title.toLowerCase().includes(query) ||
-        t.content.toLowerCase().includes(query)
-      );
-      if (dateMatch) return day;
-      if (matchedTopics.length > 0) return { ...day, topics: matchedTopics };
-      return null;
-    })
-    .filter(Boolean);
+  return days.map(day => {
+    if (day.date.includes(query)) return day;
+    const topics = day.topics.filter(t =>
+      t.title.toLowerCase().includes(query) || t.content.toLowerCase().includes(query));
+    return topics.length ? { ...day, topics } : null;
+  }).filter(Boolean);
 }
 
-function highlight(text, query) {
-  if (!query) return escapeHtml(text);
-  const escaped = escapeHtml(text);
-  const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return escaped.replace(new RegExp(escapedQuery, 'gi'), m => `<mark class="search-highlight">${m}</mark>`);
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+// ── Day rendering ────────────────────────────────────────────────────────────
 
 function renderDay(day, query = '') {
   const tpl = document.getElementById('tpl-day').content.cloneNode(true);
@@ -61,8 +56,7 @@ function renderDay(day, query = '') {
   section.dataset.date = day.date;
 
   const heading = tpl.querySelector('.day-heading');
-  if (query) heading.innerHTML = highlight(day.date, query);
-  else heading.textContent = day.date;
+  heading.innerHTML = query ? highlight(day.date, query) : escapeHtml(day.date);
 
   tpl.querySelector('.add-topic-btn').addEventListener('click', () => openAddTopicDialog(day.date));
   tpl.querySelector('.delete-day-btn').addEventListener('click', () => {
@@ -73,44 +67,87 @@ function renderDay(day, query = '') {
   if (day.topics.length === 0) {
     topicsEl.innerHTML = '<p class="empty-state">Keine Themen – füge eines hinzu.</p>';
   } else {
-    for (const topic of day.topics) {
-      topicsEl.appendChild(renderTopic(day.date, topic, query));
-    }
+    for (const topic of day.topics) topicsEl.appendChild(renderTopic(day.date, topic, query));
   }
 
   return tpl;
 }
 
+// ── Topic rendering ──────────────────────────────────────────────────────────
+
 function renderTopic(date, topic, query = '') {
   const tpl = document.getElementById('tpl-topic').content.cloneNode(true);
   const article = tpl.querySelector('.topic-article');
-  article.dataset.date = date;
-  article.dataset.title = topic.title;
 
   const titleEl = tpl.querySelector('.topic-title');
-  if (query) titleEl.innerHTML = highlight(topic.title, query);
-  else titleEl.textContent = topic.title;
+  titleEl.innerHTML = query ? highlight(topic.title, query) : escapeHtml(topic.title);
 
+  const titleInput = tpl.querySelector('.topic-title-input');
   const preview = tpl.querySelector('.topic-preview');
+  const editorWrap = tpl.querySelector('.topic-editor');
+  const textarea = editorWrap.querySelector('textarea');
+
   preview.innerHTML = topic.content ? marked.parse(topic.content) : '<em class="empty-state">Kein Inhalt</em>';
 
-  const editor = tpl.querySelector('.topic-editor');
-  const textarea = editor.querySelector('textarea');
-  textarea.value = topic.content;
+  // ── Rename ──
+  tpl.querySelector('.rename-btn').addEventListener('click', () => {
+    titleEl.classList.add('hidden');
+    titleInput.value = topic.title;
+    titleInput.classList.remove('hidden');
+    titleInput.focus();
+    titleInput.select();
+  });
 
+  titleInput.addEventListener('keydown', async e => {
+    if (e.key === 'Enter') await commitRename();
+    if (e.key === 'Escape') cancelRename();
+  });
+
+  titleInput.addEventListener('blur', () => {
+    if (!titleInput.classList.contains('hidden')) commitRename();
+  });
+
+  async function commitRename() {
+    const newTitle = titleInput.value.trim();
+    if (!newTitle || newTitle === topic.title) { cancelRename(); return; }
+    await renameTopic(date, topic.title, newTitle);
+  }
+
+  function cancelRename() {
+    titleInput.classList.add('hidden');
+    titleEl.classList.remove('hidden');
+  }
+
+  // ── Edit with EasyMDE ──
   tpl.querySelector('.edit-btn').addEventListener('click', () => {
+    destroyActiveEditor();
     preview.classList.add('hidden');
-    editor.classList.remove('hidden');
-    textarea.focus();
+    editorWrap.classList.remove('hidden');
+    textarea.value = topic.content;
+
+    activeEditor = new EasyMDE({
+      element: textarea,
+      spellChecker: false,
+      autosave: { enabled: false },
+      toolbar: ['bold', 'italic', 'strikethrough', '|',
+                'heading-2', 'heading-3', '|',
+                'unordered-list', 'ordered-list', '|',
+                'link', 'code', '|',
+                'preview', 'side-by-side'],
+      status: false,
+    });
+  });
+
+  tpl.querySelector('.save-btn').addEventListener('click', async () => {
+    const content = activeEditor ? activeEditor.value() : textarea.value;
+    await updateTopic(date, topic.title, content);
   });
 
   tpl.querySelector('.cancel-btn').addEventListener('click', () => {
-    textarea.value = topic.content;
-    editor.classList.add('hidden');
+    destroyActiveEditor();
+    editorWrap.classList.add('hidden');
     preview.classList.remove('hidden');
   });
-
-  tpl.querySelector('.save-btn').addEventListener('click', () => updateTopic(date, topic.title, textarea.value));
 
   tpl.querySelector('.delete-btn').addEventListener('click', () => {
     if (confirm(`Thema "${topic.title}" wirklich löschen?`)) deleteTopic(date, topic.title);
@@ -119,26 +156,37 @@ function renderTopic(date, topic, query = '') {
   return tpl;
 }
 
+function destroyActiveEditor() {
+  if (activeEditor) {
+    activeEditor.toTextArea();
+    activeEditor = null;
+  }
+}
+
+// ── Day operations ───────────────────────────────────────────────────────────
+
 async function addDay(date) {
   if (journal.some(d => d.date === date)) {
-    document.querySelector(`[data-date="${date}"]`)?.scrollIntoView({ behavior: 'smooth' });
     document.getElementById('dialog-day').close();
+    document.querySelector(`[data-date="${date}"]`)?.scrollIntoView({ behavior: 'smooth' });
     return;
   }
-  const res = await fetch(`${API}/day`, {
+  const res = await apiFetch(`${API}/day`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ date })
   });
-  if (res.ok) { document.getElementById('dialog-day').close(); loadJournal(); }
+  if (res?.ok) { document.getElementById('dialog-day').close(); loadJournal(); }
   else showError('Tag konnte nicht erstellt werden.');
 }
 
 async function deleteDay(date) {
-  const res = await fetch(`${API}/day?date=${encodeURIComponent(date)}`, { method: 'DELETE' });
-  if (res.ok) loadJournal();
+  const res = await apiFetch(`${API}/day?date=${encodeURIComponent(date)}`, { method: 'DELETE' });
+  if (res?.ok) loadJournal();
   else showError('Tag konnte nicht gelöscht werden.');
 }
+
+// ── Topic operations ─────────────────────────────────────────────────────────
 
 function openAddTopicDialog(date) {
   pendingTopicDate = date;
@@ -152,40 +200,61 @@ async function saveTopic() {
   const title = document.getElementById('input-topic-title').value.trim();
   if (!title) { alert('Bitte einen Titel eingeben.'); return; }
   const content = document.getElementById('input-topic-content').value;
-
-  const res = await fetch(`${API}/topic`, {
+  const res = await apiFetch(`${API}/topic`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ date: pendingTopicDate, title, content })
   });
-  if (res.ok) { document.getElementById('dialog-topic').close(); loadJournal(); }
+  if (res?.ok) { document.getElementById('dialog-topic').close(); loadJournal(); }
   else showError('Thema konnte nicht hinzugefügt werden.');
 }
 
 async function updateTopic(date, title, content) {
-  const res = await fetch(`${API}/topic`, {
+  const res = await apiFetch(`${API}/topic`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ date, title, content })
   });
-  if (res.ok) loadJournal();
+  if (res?.ok) { destroyActiveEditor(); loadJournal(); }
   else showError('Änderung konnte nicht gespeichert werden.');
 }
 
+async function renameTopic(date, title, newTitle) {
+  const res = await apiFetch(`${API}/topic`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, title, content: '', newTitle })
+  });
+  if (res?.ok) loadJournal();
+  else showError('Umbenennen fehlgeschlagen.');
+}
+
 async function deleteTopic(date, title) {
-  const res = await fetch(`${API}/topic?date=${encodeURIComponent(date)}&title=${encodeURIComponent(title)}`, {
+  const res = await apiFetch(`${API}/topic?date=${encodeURIComponent(date)}&title=${encodeURIComponent(title)}`, {
     method: 'DELETE'
   });
-  if (res.ok) loadJournal();
+  if (res?.ok) loadJournal();
   else showError('Thema konnte nicht gelöscht werden.');
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlight(text, query) {
+  const escaped = escapeHtml(text);
+  const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(safe, 'gi'), m => `<mark class="search-highlight">${m}</mark>`);
 }
 
 function showError(msg) { alert(msg); }
 
-// Neuer-Tag-Dialog
+// ── Event wiring ─────────────────────────────────────────────────────────────
+
 document.getElementById('btn-new-day').addEventListener('click', () => {
-  const today = new Date().toISOString().slice(0, 10);
-  document.getElementById('input-day-date').value = today;
+  document.getElementById('input-day-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('dialog-day').showModal();
 });
 document.getElementById('dialog-day-save').addEventListener('click', () => {
@@ -196,12 +265,10 @@ document.getElementById('dialog-day-save').addEventListener('click', () => {
 document.getElementById('dialog-day-cancel').addEventListener('click', () =>
   document.getElementById('dialog-day').close());
 
-// Thema-Dialog
 document.getElementById('dialog-topic-save').addEventListener('click', saveTopic);
 document.getElementById('dialog-topic-cancel').addEventListener('click', () =>
   document.getElementById('dialog-topic').close());
 
-// Suche
 document.getElementById('search').addEventListener('input', renderJournal);
 
 document.addEventListener('DOMContentLoaded', loadJournal);

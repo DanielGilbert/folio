@@ -50,14 +50,32 @@ header nav ul:last-child {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--pico-muted-border-color);
   margin-bottom: 0.5rem;
 }
 
+.topic-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.topic-title-input {
+  margin: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  flex: 1;
+}
+
 .topic-actions {
   display: flex;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .topic-actions button {
@@ -75,9 +93,13 @@ header nav ul:last-child {
   margin-bottom: 0;
 }
 
-.topic-editor textarea {
-  width: 100%;
-  font-family: var(--pico-font-family-monospace);
+/* EasyMDE overrides */
+.topic-editor .EasyMDEContainer {
+  margin-bottom: 0.5rem;
+}
+
+.topic-editor .CodeMirror {
+  border-radius: var(--pico-border-radius);
   font-size: 0.9rem;
 }
 
@@ -101,7 +123,7 @@ header nav ul:last-child {
   font-style: italic;
 }
 
-.search-highlight {
+mark.search-highlight {
   background-color: var(--pico-primary-background);
   color: var(--pico-primary-inverse);
   border-radius: 2px;
@@ -109,5 +131,5 @@ header nav ul:last-child {
 }
 
 dialog article {
-  max-width: 480px;
+  max-width: 540px;
 }

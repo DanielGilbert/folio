@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Folio</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -12,10 +13,9 @@
     <nav>
       <ul><li><strong>Folio</strong></li></ul>
       <ul>
-        <li>
-          <input id="search" type="search" placeholder="Suchen…" autocomplete="off" />
-        </li>
+        <li><input id="search" type="search" placeholder="Suchen…" autocomplete="off" /></li>
         <li><button id="btn-new-day" class="outline">+ Neuer Tag</button></li>
+        <li><a href="/auth/logout" class="secondary outline" role="button">Abmelden</a></li>
       </ul>
     </nav>
   </header>
@@ -38,15 +38,19 @@
   <template id="tpl-topic">
     <article class="topic-article">
       <header>
-        <strong class="topic-title"></strong>
+        <span class="topic-title-wrap">
+          <strong class="topic-title"></strong>
+          <input class="topic-title-input hidden" type="text" />
+        </span>
         <span class="topic-actions">
+          <button class="rename-btn outline secondary small">Umbenennen</button>
           <button class="edit-btn outline secondary small">Bearbeiten</button>
           <button class="delete-btn outline secondary small">Löschen</button>
         </span>
       </header>
       <div class="topic-preview"></div>
       <div class="topic-editor hidden">
-        <textarea rows="10"></textarea>
+        <textarea></textarea>
         <div class="editor-actions">
           <button class="save-btn">Speichern</button>
           <button class="cancel-btn outline secondary">Abbrechen</button>
@@ -81,6 +85,7 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

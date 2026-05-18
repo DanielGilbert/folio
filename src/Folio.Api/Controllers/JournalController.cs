@@ -67,7 +67,8 @@ public class JournalController : ControllerBase
         var idx = day.Topics.FindIndex(t => t.Title == request.Title);
         if (idx < 0) return NotFound("Thema nicht gefunden.");
 
-        day.Topics[idx] = new JournalTopic(request.Title, request.Content);
+        var content = request.NewTitle != null ? day.Topics[idx].Content : request.Content;
+        day.Topics[idx] = new JournalTopic(request.NewTitle ?? request.Title, content);
         await _storage.WriteAsync(JournalParser.Serialize(days), ct);
         return Ok();
     }

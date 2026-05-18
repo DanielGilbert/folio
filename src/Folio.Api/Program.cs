@@ -3,6 +3,7 @@ using Folio.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddTransient<AuthMiddleware>();
 
 var storageType = builder.Configuration["Storage:Type"] ?? "webdav";
 if (storageType.Equals("onedrive", StringComparison.OrdinalIgnoreCase))
@@ -16,7 +17,7 @@ var app = builder.Build();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.UseAuthorization();
+app.UseMiddleware<AuthMiddleware>();
 app.MapControllers();
 
 app.Run();

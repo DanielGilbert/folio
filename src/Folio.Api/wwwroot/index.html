@@ -12,7 +12,10 @@
     <nav>
       <ul><li><strong>Folio</strong></li></ul>
       <ul>
-        <li><button id="btn-new-day" class="outline">Neuer Tag</button></li>
+        <li>
+          <input id="search" type="search" placeholder="Suchen…" autocomplete="off" />
+        </li>
+        <li><button id="btn-new-day" class="outline">+ Neuer Tag</button></li>
       </ul>
     </nav>
   </header>
@@ -23,7 +26,10 @@
     <section class="day-section">
       <hgroup>
         <h2 class="day-heading"></h2>
-        <button class="add-topic-btn outline secondary">+ Thema</button>
+        <span class="day-actions">
+          <button class="add-topic-btn outline secondary">+ Thema</button>
+          <button class="delete-day-btn outline secondary">Löschen</button>
+        </span>
       </hgroup>
       <div class="topics"></div>
     </section>
@@ -49,16 +55,27 @@
     </article>
   </template>
 
+  <!-- Dialog: Neuer Tag -->
+  <dialog id="dialog-day">
+    <article>
+      <header><h3>Neuer Tag</h3></header>
+      <label>Datum<input id="input-day-date" type="date" /></label>
+      <footer>
+        <button id="dialog-day-cancel" class="secondary outline">Abbrechen</button>
+        <button id="dialog-day-save">Anlegen</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <!-- Dialog: Neues Thema -->
   <dialog id="dialog-topic">
     <article>
-      <header>
-        <h3 id="dialog-title">Neues Thema</h3>
-      </header>
+      <header><h3>Neues Thema</h3></header>
       <label>Titel<input id="input-topic-title" type="text" placeholder="Thema" /></label>
-      <label>Inhalt<textarea id="input-topic-content" rows="6" placeholder="Optionaler Inhalt..."></textarea></label>
+      <label>Inhalt<textarea id="input-topic-content" rows="6" placeholder="Optionaler Inhalt…"></textarea></label>
       <footer>
-        <button id="dialog-cancel" class="secondary outline">Abbrechen</button>
-        <button id="dialog-save">Hinzufügen</button>
+        <button id="dialog-topic-cancel" class="secondary outline">Abbrechen</button>
+        <button id="dialog-topic-save">Hinzufügen</button>
       </footer>
     </article>
   </dialog>

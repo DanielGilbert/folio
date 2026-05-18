@@ -31,7 +31,10 @@ public class JournalController : ControllerBase
         if (days.Any(d => d.Date == request.Date))
             return Conflict("Tag existiert bereits.");
 
-        days.Insert(0, new JournalDay(request.Date, []));
+        var newDay = new JournalDay(request.Date, []);
+        var insertAt = days.FindIndex(d => string.Compare(d.Date, request.Date) < 0);
+        if (insertAt < 0) days.Add(newDay);
+        else days.Insert(insertAt, newDay);
         await _storage.WriteAsync(JournalParser.Serialize(days), ct);
         return Ok();
     }
@@ -65,6 +68,19 @@ public class JournalController : ControllerBase
         if (idx < 0) return NotFound("Thema nicht gefunden.");
 
         day.Topics[idx] = new JournalTopic(request.Title, request.Content);
+        await _storage.WriteAsync(JournalParser.Serialize(days), ct);
+        return Ok();
+    }
+
+    [HttpDelete("day")]
+    public async Task<IActionResult> DeleteDay([FromQuery] string date, CancellationToken ct)
+    {
+        var markdown = await _storage.ReadAsync(ct);
+        var days = JournalParser.Parse(markdown);
+
+        var removed = days.RemoveAll(d => d.Date == date);
+        if (removed == 0) return NotFound("Tag nicht gefunden.");
+
         await _storage.WriteAsync(JournalParser.Serialize(days), ct);
         return Ok();
     }

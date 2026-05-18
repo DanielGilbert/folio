@@ -4,7 +4,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - WebDav__Url=${WEBDAV_URL}
-      - WebDav__Username=${WEBDAV_USERNAME}
-      - WebDav__Password=${WEBDAV_PASSWORD}
+      - Storage__Type=${STORAGE__TYPE:-webdav}
+      - WebDav__Url=${WEBDAV__URL:-}
+      - WebDav__Username=${WEBDAV__USERNAME:-}
+      - WebDav__Password=${WEBDAV__PASSWORD:-}
+      - OneDrive__ClientId=${ONEDRIVE__CLIENTID:-}
+      - OneDrive__ClientSecret=${ONEDRIVE__CLIENTSECRET:-}
+      - OneDrive__RefreshToken=${ONEDRIVE__REFRESHTOKEN:-}
+      - OneDrive__FilePath=${ONEDRIVE__FILEPATH:-journal.md}
+      - OneDrive__Tenant=${ONEDRIVE__TENANT:-consumers}
     restart: unless-stopped

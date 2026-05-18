@@ -11,47 +11,85 @@ async function loadJournal() {
 }
 
 function renderJournal() {
+  const query = document.getElementById('search').value.trim().toLowerCase();
   const container = document.getElementById('journal');
   container.innerHTML = '';
 
-  if (journal.length === 0) {
-    container.innerHTML = '<p class="empty-state">Noch keine Einträge. Starte mit "Neuer Tag".</p>';
+  const filtered = query ? filterJournal(journal, query) : journal;
+
+  if (filtered.length === 0) {
+    container.innerHTML = query
+      ? '<p class="empty-state">Keine Ergebnisse.</p>'
+      : '<p class="empty-state">Noch keine Einträge. Starte mit "+ Neuer Tag".</p>';
     return;
   }
 
-  for (const day of journal) {
-    container.appendChild(renderDay(day));
+  for (const day of filtered) {
+    container.appendChild(renderDay(day, query));
   }
 }
 
-function renderDay(day) {
+function filterJournal(days, query) {
+  return days
+    .map(day => {
+      const dateMatch = day.date.includes(query);
+      const matchedTopics = day.topics.filter(t =>
+        t.title.toLowerCase().includes(query) ||
+        t.content.toLowerCase().includes(query)
+      );
+      if (dateMatch) return day;
+      if (matchedTopics.length > 0) return { ...day, topics: matchedTopics };
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function highlight(text, query) {
+  if (!query) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(escapedQuery, 'gi'), m => `<mark class="search-highlight">${m}</mark>`);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderDay(day, query = '') {
   const tpl = document.getElementById('tpl-day').content.cloneNode(true);
   const section = tpl.querySelector('.day-section');
   section.dataset.date = day.date;
-  tpl.querySelector('.day-heading').textContent = day.date;
 
-  const addBtn = tpl.querySelector('.add-topic-btn');
-  addBtn.addEventListener('click', () => openAddTopicDialog(day.date));
+  const heading = tpl.querySelector('.day-heading');
+  if (query) heading.innerHTML = highlight(day.date, query);
+  else heading.textContent = day.date;
+
+  tpl.querySelector('.add-topic-btn').addEventListener('click', () => openAddTopicDialog(day.date));
+  tpl.querySelector('.delete-day-btn').addEventListener('click', () => {
+    if (confirm(`Tag "${day.date}" und alle Themen wirklich löschen?`)) deleteDay(day.date);
+  });
 
   const topicsEl = tpl.querySelector('.topics');
   if (day.topics.length === 0) {
     topicsEl.innerHTML = '<p class="empty-state">Keine Themen – füge eines hinzu.</p>';
   } else {
     for (const topic of day.topics) {
-      topicsEl.appendChild(renderTopic(day.date, topic));
+      topicsEl.appendChild(renderTopic(day.date, topic, query));
     }
   }
 
   return tpl;
 }
 
-function renderTopic(date, topic) {
+function renderTopic(date, topic, query = '') {
   const tpl = document.getElementById('tpl-topic').content.cloneNode(true);
   const article = tpl.querySelector('.topic-article');
   article.dataset.date = date;
   article.dataset.title = topic.title;
 
-  tpl.querySelector('.topic-title').textContent = topic.title;
+  const titleEl = tpl.querySelector('.topic-title');
+  if (query) titleEl.innerHTML = highlight(topic.title, query);
+  else titleEl.textContent = topic.title;
 
   const preview = tpl.querySelector('.topic-preview');
   preview.innerHTML = topic.content ? marked.parse(topic.content) : '<em class="empty-state">Kein Inhalt</em>';
@@ -81,19 +119,25 @@ function renderTopic(date, topic) {
   return tpl;
 }
 
-async function addToday() {
-  const today = new Date().toISOString().slice(0, 10);
-  if (journal.some(d => d.date === today)) {
-    document.querySelector(`[data-date="${today}"]`)?.scrollIntoView({ behavior: 'smooth' });
+async function addDay(date) {
+  if (journal.some(d => d.date === date)) {
+    document.querySelector(`[data-date="${date}"]`)?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('dialog-day').close();
     return;
   }
   const res = await fetch(`${API}/day`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ date: today })
+    body: JSON.stringify({ date })
   });
-  if (res.ok) loadJournal();
+  if (res.ok) { document.getElementById('dialog-day').close(); loadJournal(); }
   else showError('Tag konnte nicht erstellt werden.');
+}
+
+async function deleteDay(date) {
+  const res = await fetch(`${API}/day?date=${encodeURIComponent(date)}`, { method: 'DELETE' });
+  if (res.ok) loadJournal();
+  else showError('Tag konnte nicht gelöscht werden.');
 }
 
 function openAddTopicDialog(date) {
@@ -136,12 +180,28 @@ async function deleteTopic(date, title) {
   else showError('Thema konnte nicht gelöscht werden.');
 }
 
-function showError(msg) {
-  alert(msg);
-}
+function showError(msg) { alert(msg); }
 
-document.getElementById('btn-new-day').addEventListener('click', addToday);
-document.getElementById('dialog-save').addEventListener('click', saveTopic);
-document.getElementById('dialog-cancel').addEventListener('click', () => document.getElementById('dialog-topic').close());
+// Neuer-Tag-Dialog
+document.getElementById('btn-new-day').addEventListener('click', () => {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('input-day-date').value = today;
+  document.getElementById('dialog-day').showModal();
+});
+document.getElementById('dialog-day-save').addEventListener('click', () => {
+  const date = document.getElementById('input-day-date').value;
+  if (!date) { alert('Bitte ein Datum wählen.'); return; }
+  addDay(date);
+});
+document.getElementById('dialog-day-cancel').addEventListener('click', () =>
+  document.getElementById('dialog-day').close());
+
+// Thema-Dialog
+document.getElementById('dialog-topic-save').addEventListener('click', saveTopic);
+document.getElementById('dialog-topic-cancel').addEventListener('click', () =>
+  document.getElementById('dialog-topic').close());
+
+// Suche
+document.getElementById('search').addEventListener('input', renderJournal);
 
 document.addEventListener('DOMContentLoaded', loadJournal);

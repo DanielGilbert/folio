@@ -1,0 +1,91 @@
+:root {
+  --spacing-sm: 0.5rem;
+}
+
+header nav {
+  padding-block: var(--spacing-sm);
+}
+
+.day-section {
+  margin-bottom: 2rem;
+}
+
+.day-section hgroup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.day-heading {
+  margin: 0;
+}
+
+.add-topic-btn {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.topic-article {
+  margin-bottom: 0.75rem;
+}
+
+.topic-article header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  margin-bottom: 0.5rem;
+}
+
+.topic-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.topic-actions button {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  margin: 0;
+}
+
+.topic-preview {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.topic-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.topic-editor textarea {
+  width: 100%;
+  font-family: var(--pico-font-family-monospace);
+  font-size: 0.9rem;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.editor-actions button {
+  margin: 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.empty-state {
+  color: var(--pico-muted-color);
+  font-style: italic;
+}
+
+dialog article {
+  max-width: 480px;
+}

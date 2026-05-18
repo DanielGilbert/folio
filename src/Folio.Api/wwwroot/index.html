@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folio</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul><li><strong>Folio</strong></li></ul>
+      <ul>
+        <li><button id="btn-new-day" class="outline">Neuer Tag</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container" id="journal"></main>
+
+  <template id="tpl-day">
+    <section class="day-section">
+      <hgroup>
+        <h2 class="day-heading"></h2>
+        <button class="add-topic-btn outline secondary">+ Thema</button>
+      </hgroup>
+      <div class="topics"></div>
+    </section>
+  </template>
+
+  <template id="tpl-topic">
+    <article class="topic-article">
+      <header>
+        <strong class="topic-title"></strong>
+        <span class="topic-actions">
+          <button class="edit-btn outline secondary small">Bearbeiten</button>
+          <button class="delete-btn outline secondary small">Löschen</button>
+        </span>
+      </header>
+      <div class="topic-preview"></div>
+      <div class="topic-editor hidden">
+        <textarea rows="10"></textarea>
+        <div class="editor-actions">
+          <button class="save-btn">Speichern</button>
+          <button class="cancel-btn outline secondary">Abbrechen</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <dialog id="dialog-topic">
+    <article>
+      <header>
+        <h3 id="dialog-title">Neues Thema</h3>
+      </header>
+      <label>Titel<input id="input-topic-title" type="text" placeholder="Thema" /></label>
+      <label>Inhalt<textarea id="input-topic-content" rows="6" placeholder="Optionaler Inhalt..."></textarea></label>
+      <footer>
+        <button id="dialog-cancel" class="secondary outline">Abbrechen</button>
+        <button id="dialog-save">Hinzufügen</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

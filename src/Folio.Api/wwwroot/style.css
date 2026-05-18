@@ -93,14 +93,72 @@ header nav ul:last-child {
   margin-bottom: 0;
 }
 
-/* EasyMDE overrides */
-.topic-editor .EasyMDEContainer {
+/* EasyMDE – Pico.css-Konflikte beheben */
+.EasyMDEContainer {
   margin-bottom: 0.5rem;
 }
 
-.topic-editor .CodeMirror {
-  border-radius: var(--pico-border-radius);
-  font-size: 0.9rem;
+.EasyMDEContainer .CodeMirror {
+  height: auto !important;
+  min-height: 200px;
+  font-family: var(--pico-font-family-monospace) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.6 !important;
+  color: var(--pico-color) !important;
+  background: var(--pico-background-color) !important;
+  border: var(--pico-border-width) solid var(--pico-form-element-border-color) !important;
+  border-radius: var(--pico-border-radius) !important;
+  padding: 0.5rem !important;
+}
+
+.EasyMDEContainer .CodeMirror-scroll {
+  min-height: 180px;
+}
+
+.editor-toolbar {
+  background: var(--pico-card-background-color) !important;
+  border: var(--pico-border-width) solid var(--pico-form-element-border-color) !important;
+  border-bottom: none !important;
+  border-radius: var(--pico-border-radius) var(--pico-border-radius) 0 0 !important;
+  opacity: 1 !important;
+}
+
+.md-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0.3rem 0.4rem;
+  background: var(--pico-card-sectioning-background-color);
+  border: var(--pico-border-width) solid var(--pico-form-element-border-color);
+  border-bottom: none;
+  border-radius: var(--pico-border-radius) var(--pico-border-radius) 0 0;
+}
+
+.md-toolbar button {
+  font-size: 0.8rem;
+  font-style: normal;
+  padding: 0.2rem 0.45rem;
+  margin: 0;
+  min-width: 28px;
+  border: 1px solid transparent;
+}
+
+.md-toolbar button:hover {
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+}
+
+.tb-sep {
+  width: 1px;
+  height: 1.2rem;
+  background: var(--pico-muted-border-color);
+  margin: 0 0.2rem;
+}
+
+/* EasyMDE editor area */
+.EasyMDEContainer .CodeMirror {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
 }
 
 .editor-actions {

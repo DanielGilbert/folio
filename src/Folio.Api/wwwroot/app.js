@@ -129,12 +129,27 @@ function renderTopic(date, topic, query = '') {
       element: textarea,
       spellChecker: false,
       autosave: { enabled: false },
-      toolbar: ['bold', 'italic', 'strikethrough', '|',
-                'heading-2', 'heading-3', '|',
-                'unordered-list', 'ordered-list', '|',
-                'link', 'code', '|',
-                'preview', 'side-by-side'],
       status: false,
+      toolbar: false,
+    });
+
+    const toolbarActions = {
+      bold:          EasyMDE.toggleBold,
+      italic:        EasyMDE.toggleItalic,
+      strikethrough: EasyMDE.toggleStrikethrough,
+      heading2:      EasyMDE.toggleHeading2,
+      heading3:      EasyMDE.toggleHeading3,
+      ul:            EasyMDE.toggleUnorderedList,
+      ol:            EasyMDE.toggleOrderedList,
+      link:          EasyMDE.drawLink,
+      code:          EasyMDE.toggleCodeBlock,
+    };
+
+    editorWrap.querySelectorAll('.md-toolbar [data-action]').forEach(btn => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        toolbarActions[btn.dataset.action]?.(activeEditor);
+      });
     });
   });
 

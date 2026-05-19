@@ -6,7 +6,7 @@ This is _Folio_, a frontend for my custom "Journal.md". It is tailored to my nee
 ## How does it work?
 _Folio_ uses the [File System API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API)'s [File System Access](https://wicg.github.io/file-system-access/)-Extension of modern Chrome-based Browsers. This means that the code can directly write to a file on your file system, if you opened it via the browser before. If that is not available, it will fall back to a normal "Upload"/"Download"-Routine. It uses plain HTML, CSS and [marked.js](https://marked.js.org) to do the conversion from markdown to HTML.
 
-You can download the repository, and double click on _folio.html_. It loads _marked.js_ via CDN, so Internet is required, but I can see myself embedding it in a future version.
+You can download the repository, and double click on _folio.html_. _marked.js_ is embedded directly into the file, so no Internet connection is required — _folio.html_ is fully self-contained.
 
 ## How does the Jounal.md look like?
 ```

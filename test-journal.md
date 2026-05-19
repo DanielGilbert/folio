@@ -1,12 +1,9 @@
 # 2026-05-18
-# 2026-05-17
-## Architektur-Entscheidung
+## Diskussion
 
-WebDAV als Storage-Abstraktion gewählt. Nextcloud und OneDrive beide unterstützt.
+## Andere Diskussion
 
-## Test
-
-***test***
+Regelmäßiger Austausch
 
 # 2026-05-16
 # 2026-05-15

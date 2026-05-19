@@ -102,7 +102,15 @@
       padding-bottom: 0.4rem;
       border-bottom: 1px solid var(--border);
     }
-    .day-date { font-size: 0.9rem; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; flex: 1; }
+    .day-date {
+      font-size: 0.9rem; font-weight: 600; color: var(--muted);
+      letter-spacing: 0.04em; flex: 1;
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .day-date::before { content: '▾'; font-size: 0.75rem; transition: transform 0.15s; display: inline-block; }
+    .day.collapsed .day-date::before { transform: rotate(-90deg); }
+    .day.collapsed .topics { display: none; }
     .day-actions { display: flex; gap: 0.3rem; }
 
     /* ── Topic ── */
@@ -235,6 +243,7 @@
   <header id="app-header">
     <strong>Folio</strong>
     <input type="search" id="search" placeholder="Suchen…" autocomplete="off">
+    <button onclick="goToToday()">Heute</button>
     <button onclick="showNewDayDialog()">+ Tag</button>
     <button id="btn-save" class="primary" onclick="saveFile()">Speichern</button>
     <button id="btn-download" onclick="downloadCurrent()" title="Als journal.md herunterladen" style="display:none">↓ Download</button>
@@ -528,7 +537,9 @@ function makeDay(day, q) {
   const frag = document.getElementById('tpl-day').content.cloneNode(true);
   const el   = frag.querySelector('.day');
   el.dataset.date = day.date;
-  frag.querySelector('.day-date').innerHTML = q ? hl(day.date, q) : esc(day.date);
+  const dateEl = frag.querySelector('.day-date');
+  dateEl.innerHTML = q ? hl(day.date, q) : esc(day.date);
+  dateEl.onclick = () => el.classList.toggle('collapsed');
 
   frag.querySelector('.add-topic-btn').onclick = () => showNewTopicDialog(day.date);
   frag.querySelector('.delete-day-btn').onclick = () => {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,6 +45,7 @@
       padding: 0.6rem 0;
       display: none;
       align-items: center;
+      flex-wrap: wrap;
       gap: 0.6rem;
       z-index: 10;
     }
@@ -64,7 +65,7 @@
       #app-header { flex-wrap: wrap; gap: 0.4rem; }
       #app-header strong { flex: 1; }
       #search { order: 99; flex: 1 0 100%; }
-      #btn-open, .btn-toggle, #view-filter { display: none; }
+      #btn-open, #btn-toggle-days { display: none; }
       #app-header button { font-size: 0.78rem; padding: 0.28rem 0.5rem; }
     }
 
@@ -234,11 +235,12 @@
       position: fixed; bottom: 0; left: 0; right: 0;
       background: var(--surface); border-top: 1px solid var(--border);
       font-size: 0.75rem; color: var(--muted);
-      padding: 0.3rem 1rem; display: none;
+      padding: 0.3rem 1rem; display: flex;
       justify-content: space-between; align-items: center;
       z-index: 20;
     }
-    #statusbar.visible { display: flex; }
+    #statusbar a { color: var(--muted); text-decoration: none; }
+    #statusbar a:hover { color: var(--accent); }
 
     /* ── FAB ── */
     #fab {
@@ -253,17 +255,19 @@
 
     /* ── View filter ── */
     #view-filter {
+      order: 10; flex: 0 0 100%;
       display: flex;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+      gap: 0.25rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.4rem;
+      margin-top: -0.1rem;
     }
     #view-filter button {
-      border: none; border-radius: 0;
-      border-right: 1px solid var(--border);
-      padding: 0.3rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.2rem 0.65rem;
+      font-size: 0.78rem;
     }
-    #view-filter button:last-child { border-right: none; }
     button.active, button.active:hover {
       background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
     }
@@ -280,14 +284,14 @@
   <!-- Welcome -->
   <div id="welcome">
     <h1>Folio</h1>
-    <p>Dein persönliches Arbeitsjournal. Öffne eine <code>journal.md</code> oder starte neu.</p>
+    <p>Your personal work journal. Open a <code>journal.md</code> or start fresh.</p>
     <div class="welcome-actions">
-      <button class="primary" onclick="openFile()">📂 Datei öffnen</button>
-      <button onclick="newJournal()">✨ Neu starten</button>
+      <button class="primary" onclick="openFile()">📂 Open file</button>
+      <button onclick="newJournal()">✨ Start fresh</button>
     </div>
     <div id="restore-hint">
-      Nicht gespeicherte Änderungen vom <strong id="restore-date"></strong>.
-      <button onclick="restoreFromStorage()">Wiederherstellen</button>
+      Unsaved changes from <strong id="restore-date"></strong>.
+      <button onclick="restoreFromStorage()">Restore</button>
     </div>
   </div>
 
@@ -295,30 +299,31 @@
   <header id="app-header">
     <strong>Folio</strong>
     <div id="view-filter">
-      <button class="ghost active" data-filter="all"   onclick="setFilter('all')">Alle</button>
-      <button class="ghost"        data-filter="week"  onclick="setFilter('week')">Woche</button>
-      <button class="ghost"        data-filter="month" onclick="setFilter('month')">Monat</button>
+      <button class="ghost active" data-filter="all"   onclick="setFilter('all')">All</button>
+      <button class="ghost"        data-filter="week"  onclick="setFilter('week')">Week</button>
+      <button class="ghost"        data-filter="month" onclick="setFilter('month')">Month</button>
     </div>
-    <input type="search" id="search" placeholder="Suchen…" autocomplete="off">
-    <button onclick="goToToday()">Heute</button>
-    <button class="btn-toggle" onclick="toggleAll('.day')"   title="Tage ein-/ausklappen">± Tage</button>
-    <button class="btn-toggle" onclick="toggleAll('.topic')" title="Themen ein-/ausklappen">± Themen</button>
-    <button onclick="showNewDayDialog()">+ Tag</button>
-    <button id="btn-save" class="primary" onclick="saveFile()">Speichern</button>
-    <button id="btn-download" onclick="downloadCurrent()" title="Als journal.md herunterladen" style="display:none">↓ Download</button>
-    <button id="btn-open" onclick="openFile()" title="Andere Datei öffnen">📂</button>
+    <input type="search" id="search" placeholder="Search…" autocomplete="off">
+    <button onclick="goToToday()">Today</button>
+    <button id="btn-toggle-days"   class="btn-toggle" onclick="toggleAll('.day')"   title="Collapse/expand days">± Days</button>
+    <button id="btn-toggle-topics" class="btn-toggle" onclick="toggleAll('.topic')" title="Collapse/expand topics">± Topics</button>
+    <button onclick="showNewDayDialog()">+ Day</button>
+    <button id="btn-save" class="primary" onclick="saveFile()">Save</button>
+    <button id="btn-download" onclick="downloadCurrent()" title="Download as journal.md" style="display:none">↓ Download</button>
+    <button id="btn-open" onclick="openFile()" title="Open another file">📂</button>
   </header>
 
   <!-- Journal -->
   <div id="journal"></div>
 
+
 </div>
 
 <!-- Status bar -->
 <div id="statusbar">
-  <span id="status-file">—</span>
+  <span id="status-file"></span>
   <span id="status-stats"></span>
-  <span id="status-mode">—</span>
+  <span>Made with ☕️ &amp; ❤️ by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a></span>
 </div>
 
 <!-- Template: Day -->
@@ -327,7 +332,7 @@
     <div class="day-header">
       <span class="day-date"></span>
       <div class="day-actions">
-        <button class="ghost add-topic-btn">+ Thema</button>
+        <button class="ghost add-topic-btn">+ Topic</button>
         <button class="ghost danger delete-day-btn">✕</button>
       </div>
     </div>
@@ -342,33 +347,33 @@
       <span class="topic-title"></span>
       <input class="topic-title-input" type="text">
       <div class="topic-actions">
-        <button class="ghost move-up-btn"   title="Nach oben">↑</button>
-        <button class="ghost move-down-btn" title="Nach unten">↓</button>
-        <button class="ghost rename-btn"    title="Umbenennen">✎</button>
-        <button class="ghost danger delete-topic-btn" title="Löschen">✕</button>
+        <button class="ghost move-up-btn"   title="Move up">↑</button>
+        <button class="ghost move-down-btn" title="Move down">↓</button>
+        <button class="ghost rename-btn"    title="Rename">✎</button>
+        <button class="ghost danger delete-topic-btn" title="Delete">✕</button>
       </div>
     </div>
     <div class="topic-preview"></div>
     <div class="topic-editor">
       <div class="md-toolbar">
-        <button type="button" data-wrap="**|**" title="Fett (Cmd+B)"><b>B</b></button>
-        <button type="button" data-wrap="*|*"   title="Kursiv (Cmd+I)"><em>I</em></button>
-        <button type="button" data-wrap="~~|~~" title="Durchgestrichen"><s>S</s></button>
+        <button type="button" data-wrap="**|**" title="Bold (Cmd+B)"><b>B</b></button>
+        <button type="button" data-wrap="*|*"   title="Italic (Cmd+I)"><em>I</em></button>
+        <button type="button" data-wrap="~~|~~" title="Strikethrough"><s>S</s></button>
         <span class="tb-sep"></span>
-        <button type="button" data-prefix="### " title="Überschrift 3">H3</button>
-        <button type="button" data-prefix="#### " title="Überschrift 4">H4</button>
+        <button type="button" data-prefix="### " title="Heading 3">H3</button>
+        <button type="button" data-prefix="#### " title="Heading 4">H4</button>
         <span class="tb-sep"></span>
-        <button type="button" data-prefix="- "  title="Liste">• —</button>
-        <button type="button" data-prefix="1. " title="Nummeriert">1.</button>
+        <button type="button" data-prefix="- "  title="Unordered list">• —</button>
+        <button type="button" data-prefix="1. " title="Ordered list">1.</button>
         <span class="tb-sep"></span>
         <button type="button" data-wrap="[|](url)" title="Link">🔗</button>
-        <button type="button" data-wrap="`|`"       title="Inline-Code">&lt;&gt;</button>
-        <button type="button" data-wrap="```\n|\n```" title="Code-Block">```</button>
+        <button type="button" data-wrap="`|`"       title="Inline code">&lt;&gt;</button>
+        <button type="button" data-wrap="```\n|\n```" title="Code block">```</button>
       </div>
       <textarea placeholder="Markdown…"></textarea>
       <div class="editor-footer">
-        <button class="primary save-btn">Speichern</button>
-        <button class="ghost cancel-btn">Abbrechen</button>
+        <button class="primary save-btn">Save</button>
+        <button class="ghost cancel-btn">Cancel</button>
       </div>
     </div>
   </div>
@@ -376,50 +381,50 @@
 
 <!-- Dialog: New Day -->
 <dialog id="dlg-day">
-  <h3>Neuer Tag</h3>
+  <h3>New Day</h3>
   <div class="field">
-    <label>Datum</label>
+    <label>Date</label>
     <input type="date" id="dlg-day-date">
   </div>
   <div class="dialog-footer">
-    <button onclick="document.getElementById('dlg-day').close()">Abbrechen</button>
-    <button class="primary" onclick="confirmNewDay()">Anlegen</button>
+    <button onclick="document.getElementById('dlg-day').close()">Cancel</button>
+    <button class="primary" onclick="confirmNewDay()">Create</button>
   </div>
 </dialog>
 
 <!-- Dialog: New Topic -->
 <dialog id="dlg-topic">
-  <h3>Neues Thema</h3>
+  <h3>New Topic</h3>
   <div class="field">
-    <label>Titel</label>
-    <input type="text" id="dlg-topic-title" placeholder="z.B. Standup">
+    <label>Title</label>
+    <input type="text" id="dlg-topic-title" placeholder="e.g. Standup">
   </div>
   <div class="field" id="dlg-topic-template-field" style="display:none">
     <label>Template</label>
     <select id="dlg-topic-template">
-      <option value="">— Kein Template —</option>
+      <option value="">— No template —</option>
     </select>
   </div>
   <div class="dialog-footer">
     <button class="ghost" onclick="openTemplateEditor()" style="margin-right:auto;font-size:0.78rem">⚙ Templates</button>
-    <button onclick="document.getElementById('dlg-topic').close()">Abbrechen</button>
-    <button class="primary" onclick="confirmNewTopic()">Hinzufügen</button>
+    <button onclick="document.getElementById('dlg-topic').close()">Cancel</button>
+    <button class="primary" onclick="confirmNewTopic()">Add</button>
   </div>
 </dialog>
 
 <!-- FAB -->
-<button id="fab" onclick="quickEntry()" title="Neuer Eintrag für heute">+</button>
+<button id="fab" onclick="quickEntry()" title="New entry for today">+</button>
 
 <!-- Dialog: Templates -->
 <dialog id="dlg-templates">
   <h3>Templates</h3>
-  <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem">Format: <code>## Titelname</code> gefolgt vom Inhalt. Mehrere Templates durch Leerzeile trennen.</p>
+  <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem">Format: <code>## Title</code> followed by content. Separate multiple templates with a blank line.</p>
   <div class="field">
-    <textarea id="dlg-templates-body" placeholder="## Standup&#10;Gestern:&#10;Heute:&#10;Blocker:"></textarea>
+    <textarea id="dlg-templates-body" placeholder="## Standup&#10;Yesterday:&#10;Today:&#10;Blockers:"></textarea>
   </div>
   <div class="dialog-footer">
-    <button onclick="document.getElementById('dlg-templates').close()">Abbrechen</button>
-    <button class="primary" onclick="saveTemplates()">Speichern</button>
+    <button onclick="document.getElementById('dlg-templates').close()">Cancel</button>
+    <button class="primary" onclick="saveTemplates()">Save</button>
   </div>
 </dialog>
 
@@ -452,9 +457,9 @@ async function openFile() {
       fileHandle = handle;
       const file = await handle.getFile();
       init(await file.text());
-      setStatus(`📄 ${handle.name}`, hasFSA ? 'Direktes Speichern aktiv' : '');
+      setStatus(`📄 ${handle.name}`);
     } catch (e) {
-      if (e.name !== 'AbortError') alert('Fehler beim Öffnen: ' + e.message);
+      if (e.name !== 'AbortError') alert('Error opening file: ' + e.message);
     }
   } else {
     document.getElementById('file-input').click();
@@ -466,14 +471,14 @@ document.getElementById('file-input').addEventListener('change', async e => {
   if (!file) return;
   fileHandle = null;
   init(await file.text());
-  setStatus(`📄 ${file.name}`, 'Speichern = Download');
+  setStatus(`📄 ${file.name}`);
   e.target.value = '';
 });
 
 function newJournal() {
   fileHandle = null;
   init('');
-  setStatus('Neues Journal', 'Noch nicht gespeichert');
+  setStatus('New journal');
 }
 
 function init(markdown) {
@@ -483,7 +488,6 @@ function init(markdown) {
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('app-header').style.display = 'flex';
   document.getElementById('journal').style.display = 'block';
-  document.getElementById('statusbar').classList.add('visible');
   document.getElementById('btn-download').style.display = fileHandle ? 'none' : '';
   document.getElementById('fab').style.display = 'block';
   updateSaveBtn();
@@ -501,10 +505,10 @@ async function saveFile() {
     try {
       const w = await fileHandle.createWritable();
       await w.write(content); await w.close();
-      flashBtn('✓ Gespeichert');
-    } catch (e) { alert('Speichern fehlgeschlagen: ' + e.message); }
+      flashBtn('✓ Saved');
+    } catch (e) { alert('Save failed: ' + e.message); }
   } else {
-    flashBtn('✓ Gespeichert');
+    flashBtn('✓ Saved');
   }
 }
 
@@ -527,14 +531,14 @@ function download(content) {
   if (!saved || !ts) return;
   const hint = document.getElementById('restore-hint');
   document.getElementById('restore-date').textContent =
-    new Date(ts).toLocaleString('de-DE');
+    new Date(ts).toLocaleString();
   hint.style.display = 'block';
 })();
 
 function restoreFromStorage() {
   fileHandle = null;
   init(localStorage.getItem(LS_CONTENT) || '');
-  setStatus('Wiederhergestellt aus Local Storage', 'Speichern = Download');
+  setStatus('Restored from local storage');
 }
 
 // Auto-save to LS when dirty
@@ -614,7 +618,7 @@ function markDirty() { isDirty = true; updateSaveBtn(); }
 function updateSaveBtn() {
   const btn = document.getElementById('btn-save');
   if (!btn) return;
-  btn.textContent = isDirty ? '● Speichern' : 'Speichern';
+  btn.textContent = isDirty ? '● Save' : 'Save';
   btn.classList.toggle('primary', isDirty);
 }
 
@@ -658,7 +662,7 @@ function updateStats() {
     n + d.topics.reduce((m, t) =>
       m + (t.content ? t.content.trim().split(/\s+/).filter(Boolean).length : 0), 0), 0);
   document.getElementById('status-stats').textContent =
-    `${days} Tage · ${topics} Themen · ${words} Wörter`;
+    `${days} days · ${topics} topics · ${words} words`;
 }
 
 function render(q = '') {
@@ -676,10 +680,10 @@ function render(q = '') {
   days = filterByView(days);
 
   if (!days.length) {
-    const msg = q ? 'Keine Treffer.' :
-      currentFilter === 'week'  ? 'Keine Einträge diese Woche.' :
-      currentFilter === 'month' ? 'Keine Einträge diesen Monat.' :
-      'Kein Inhalt. Starte mit &ldquo;+ Tag&rdquo;.';
+    const msg = q ? 'No results.' :
+      currentFilter === 'week'  ? 'No entries this week.' :
+      currentFilter === 'month' ? 'No entries this month.' :
+      'No content yet. Start with &ldquo;+ Day&rdquo;.';
     container.innerHTML = `<div class="no-results">${msg}</div>`;
     updateStats();
     return;
@@ -698,7 +702,7 @@ function makeDay(day, q) {
 
   frag.querySelector('.add-topic-btn').onclick = () => showNewTopicDialog(day.date);
   frag.querySelector('.delete-day-btn').onclick = () => {
-    if (!confirm(`Tag „${day.date}" und alle Themen löschen?`)) return;
+    if (!confirm(`Delete day "${day.date}" and all its topics?`)) return;
     journal = journal.filter(d => d.date !== day.date);
     markDirty();
     render(document.getElementById('search').value);
@@ -706,7 +710,7 @@ function makeDay(day, q) {
 
   const topicsEl = frag.querySelector('.topics');
   if (!day.topics.length)
-    topicsEl.innerHTML = '<div class="no-topics">Keine Themen — klicke auf + Thema.</div>';
+    topicsEl.innerHTML = '<div class="no-topics">No topics yet — click + Topic.</div>';
   else
     day.topics.forEach(t => topicsEl.appendChild(makeTopic(day.date, t, q)));
 
@@ -773,7 +777,7 @@ function makeTopic(date, topic, q) {
 
   // ── Delete ──
   frag.querySelector('.delete-topic-btn').onclick = () => {
-    if (!confirm(`„${topic.title}" löschen?`)) return;
+    if (!confirm(`Delete "${topic.title}"?`)) return;
     const d = journal.find(d => d.date === date);
     if (d) { d.topics = d.topics.filter(t => t.title !== topic.title); markDirty(); }
     render(document.getElementById('search').value);
@@ -832,7 +836,7 @@ function renderPreview(el, content, q) {
     el.classList.remove('placeholder');
     if (q) highlightDOM(el, q);
   } else {
-    el.textContent = 'Kein Inhalt – klicken zum Bearbeiten';
+    el.textContent = 'No content – click to edit';
     el.classList.add('placeholder');
   }
 }
@@ -924,7 +928,7 @@ function showNewTopicDialog(date) {
   document.getElementById('dlg-topic-title').value = '';
   const sel   = document.getElementById('dlg-topic-template');
   const field = document.getElementById('dlg-topic-template-field');
-  sel.innerHTML = '<option value="">— Kein Template —</option>';
+  sel.innerHTML = '<option value="">— No template —</option>';
   templates.forEach((t, i) => {
     const opt = document.createElement('option');
     opt.value = i; opt.textContent = t.title;
@@ -1023,9 +1027,8 @@ const esc  = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt
 const hl   = (s, q) => esc(s).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<mark>${m}</mark>`);
 const today = () => new Date().toISOString().slice(0, 10);
 
-function setStatus(file, mode) {
+function setStatus(file) {
   document.getElementById('status-file').textContent = file;
-  document.getElementById('status-mode').textContent = mode;
 }
 </script>
 </body>

@@ -282,7 +282,9 @@
       <span class="topic-title"></span>
       <input class="topic-title-input" type="text">
       <div class="topic-actions">
-        <button class="ghost rename-btn" title="Umbenennen">✎</button>
+        <button class="ghost move-up-btn"   title="Nach oben">↑</button>
+        <button class="ghost move-down-btn" title="Nach unten">↓</button>
+        <button class="ghost rename-btn"    title="Umbenennen">✎</button>
         <button class="ghost danger delete-topic-btn" title="Löschen">✕</button>
       </div>
     </div>
@@ -595,6 +597,24 @@ function makeTopic(date, topic, q) {
     if (e.key === 'Escape') { titleIn.value = topic.title; applyRename(); }
   };
 
+  // ── Move up / down ──
+  frag.querySelector('.move-up-btn').onclick = () => {
+    const d = journal.find(d => d.date === date);
+    if (!d) return;
+    const i = d.topics.findIndex(t => t.title === topic.title);
+    if (i <= 0) return;
+    [d.topics[i - 1], d.topics[i]] = [d.topics[i], d.topics[i - 1]];
+    markDirty(); render(document.getElementById('search').value);
+  };
+  frag.querySelector('.move-down-btn').onclick = () => {
+    const d = journal.find(d => d.date === date);
+    if (!d) return;
+    const i = d.topics.findIndex(t => t.title === topic.title);
+    if (i < 0 || i >= d.topics.length - 1) return;
+    [d.topics[i], d.topics[i + 1]] = [d.topics[i + 1], d.topics[i]];
+    markDirty(); render(document.getElementById('search').value);
+  };
+
   // ── Delete ──
   frag.querySelector('.delete-topic-btn').onclick = () => {
     if (!confirm(`„${topic.title}" löschen?`)) return;
@@ -673,6 +693,17 @@ function insertPrefix(ta, prefix) {
 }
 
 // ── Day / Topic creation ───────────────────────────────────────────────────
+function goToToday() {
+  const date = today();
+  if (!journal.some(d => d.date === date)) {
+    const i = journal.findIndex(d => d.date < date);
+    const entry = { date, topics: [] };
+    i < 0 ? journal.push(entry) : journal.splice(i, 0, entry);
+    markDirty(); render();
+  }
+  setTimeout(() => document.querySelector(`[data-date="${date}"]`)?.scrollIntoView({ behavior: 'smooth' }), 50);
+}
+
 function showNewDayDialog() {
   document.getElementById('dlg-day-date').value = today();
   document.getElementById('dlg-day').showModal();

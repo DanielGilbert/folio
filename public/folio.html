@@ -48,7 +48,7 @@
       gap: 0.6rem;
       z-index: 10;
     }
-    #app-header strong { font-size: 1rem; white-space: nowrap; }
+    #app-header strong { font-size: 1rem; white-space: nowrap; flex: 1; }
     #search {
       flex: 1; min-width: 0;
       padding: 0.35rem 0.6rem;
@@ -59,6 +59,14 @@
       font-size: 0.875rem;
     }
     #search:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+    @media (max-width: 560px) {
+      #app-header { flex-wrap: wrap; gap: 0.4rem; }
+      #app-header strong { flex: 1; }
+      #search { order: 99; flex: 1 0 100%; }
+      #btn-open, #btn-toggle-all { display: none; }
+      #app-header button { font-size: 0.78rem; padding: 0.28rem 0.5rem; }
+    }
 
     /* ── Buttons ── */
     button {
@@ -253,7 +261,7 @@
     <strong>Folio</strong>
     <input type="search" id="search" placeholder="Suchen…" autocomplete="off">
     <button onclick="goToToday()">Heute</button>
-    <button onclick="toggleAll()" title="Alle ein-/ausklappen">± Alle</button>
+    <button id="btn-toggle-all" onclick="toggleAll()" title="Alle ein-/ausklappen">± Alle</button>
     <button onclick="showNewDayDialog()">+ Tag</button>
     <button id="btn-save" class="primary" onclick="saveFile()">Speichern</button>
     <button id="btn-download" onclick="downloadCurrent()" title="Als journal.md herunterladen" style="display:none">↓ Download</button>

@@ -551,7 +551,7 @@ setInterval(() => {
 
 // ── Parser ─────────────────────────────────────────────────────────────────
 function parseTemplates(md) {
-  const match = md.match(/<!--\s*folio:templates([\s\S]*?)-->/);
+  const match = md.match(new RegExp('<!--\\s*folio:templates([\\s\\S]*?)-->'));
   if (!match) return [];
   const result = [];
   let title = null, lines = [];

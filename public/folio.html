@@ -122,7 +122,16 @@
       background: var(--surface);
       border-bottom: 1px solid var(--border);
     }
-    .topic-title { font-size: 0.9rem; font-weight: 600; flex: 1; }
+    .topic-title {
+      font-size: 0.9rem; font-weight: 600; flex: 1;
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .topic-title::before { content: '▾'; font-size: 0.7rem; transition: transform 0.15s; display: inline-block; }
+    .topic.collapsed .topic-title::before { transform: rotate(-90deg); }
+    .topic.collapsed .topic-preview,
+    .topic.collapsed .topic-editor { display: none; }
+    .topic.collapsed .topic-header { border-bottom: none; }
     .topic-title-input {
       flex: 1; font-size: 0.9rem; font-weight: 600;
       border: 1px solid var(--accent); border-radius: 3px;
@@ -244,6 +253,7 @@
     <strong>Folio</strong>
     <input type="search" id="search" placeholder="Suchen…" autocomplete="off">
     <button onclick="goToToday()">Heute</button>
+    <button onclick="toggleAll()" title="Alle ein-/ausklappen">± Alle</button>
     <button onclick="showNewDayDialog()">+ Tag</button>
     <button id="btn-save" class="primary" onclick="saveFile()">Speichern</button>
     <button id="btn-download" onclick="downloadCurrent()" title="Als journal.md herunterladen" style="display:none">↓ Download</button>
@@ -571,6 +581,9 @@ function makeTopic(date, topic, q) {
   titleEl.innerHTML = q ? hl(topic.title, q) : esc(topic.title);
   renderPreview(preview, topic.content, q);
 
+  // ── Collapse topic ──
+  titleEl.onclick = () => titleEl.closest('.topic').classList.toggle('collapsed');
+
   // ── Click preview → edit ──
   preview.onclick = () => openEditor();
 
@@ -693,6 +706,12 @@ function insertPrefix(ta, prefix) {
 }
 
 // ── Day / Topic creation ───────────────────────────────────────────────────
+function toggleAll() {
+  const all = document.querySelectorAll('.day, .topic');
+  const anyOpen = [...all].some(el => !el.classList.contains('collapsed'));
+  all.forEach(el => el.classList.toggle('collapsed', anyOpen));
+}
+
 function goToToday() {
   const date = today();
   if (!journal.some(d => d.date === date)) {

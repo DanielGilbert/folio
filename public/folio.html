@@ -64,7 +64,7 @@
       #app-header { flex-wrap: wrap; gap: 0.4rem; }
       #app-header strong { flex: 1; }
       #search { order: 99; flex: 1 0 100%; }
-      #btn-open, #btn-toggle-all { display: none; }
+      #btn-open, #btn-toggle-all, #view-filter { display: none; }
       #app-header button { font-size: 0.78rem; padding: 0.28rem 0.5rem; }
     }
 
@@ -189,6 +189,11 @@
       font-size: 0.875rem; line-height: 1.65;
       resize: vertical; min-height: 120px;
       field-sizing: content;
+      transition: outline 0.1s, background 0.1s;
+    }
+    textarea.drag-over {
+      outline: 2px dashed var(--accent);
+      background: color-mix(in srgb, var(--accent) 8%, var(--bg));
     }
 
     .editor-footer {
@@ -233,6 +238,23 @@
     }
     #statusbar.visible { display: flex; }
 
+    /* ── View filter ── */
+    #view-filter {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #view-filter button {
+      border: none; border-radius: 0;
+      border-right: 1px solid var(--border);
+      padding: 0.3rem 0.55rem;
+    }
+    #view-filter button:last-child { border-right: none; }
+    button.active, button.active:hover {
+      background: var(--accent); color: var(--accent-fg); border-color: var(--accent);
+    }
+
     /* ── Empty states ── */
     .no-topics { font-size: 0.85rem; color: var(--muted); padding: 0.5rem 0; }
     .no-results { color: var(--muted); text-align: center; padding: 3rem 1rem; }
@@ -259,6 +281,11 @@
   <!-- App header (hidden until file is loaded) -->
   <header id="app-header">
     <strong>Folio</strong>
+    <div id="view-filter">
+      <button class="ghost active" data-filter="all"   onclick="setFilter('all')">Alle</button>
+      <button class="ghost"        data-filter="week"  onclick="setFilter('week')">Woche</button>
+      <button class="ghost"        data-filter="month" onclick="setFilter('month')">Monat</button>
+    </div>
     <input type="search" id="search" placeholder="Suchen…" autocomplete="off">
     <button onclick="goToToday()">Heute</button>
     <button id="btn-toggle-all" onclick="toggleAll()" title="Alle ein-/ausklappen">± Alle</button>
@@ -276,6 +303,7 @@
 <!-- Status bar -->
 <div id="statusbar">
   <span id="status-file">—</span>
+  <span id="status-stats"></span>
   <span id="status-mode">—</span>
 </div>
 
@@ -313,8 +341,8 @@
         <button type="button" data-wrap="*|*"   title="Kursiv (Cmd+I)"><em>I</em></button>
         <button type="button" data-wrap="~~|~~" title="Durchgestrichen"><s>S</s></button>
         <span class="tb-sep"></span>
-        <button type="button" data-prefix="## " title="Überschrift 2">H2</button>
         <button type="button" data-prefix="### " title="Überschrift 3">H3</button>
+        <button type="button" data-prefix="#### " title="Überschrift 4">H4</button>
         <span class="tb-sep"></span>
         <button type="button" data-prefix="- "  title="Liste">• —</button>
         <button type="button" data-prefix="1. " title="Nummeriert">1.</button>
@@ -374,6 +402,7 @@ let pendingDate = null;
 const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
 const hasFSA     = 'showOpenFilePicker' in window;
+let currentFilter = 'all';
 
 // ── File I/O ───────────────────────────────────────────────────────────────
 async function openFile() {
@@ -534,23 +563,65 @@ function flashBtn(label) {
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
+function filterByView(days) {
+  if (currentFilter === 'all') return days;
+  const now = new Date();
+  if (currentFilter === 'week') {
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const from = mon.toISOString().slice(0, 10);
+    const to   = today();
+    return days.filter(d => d.date >= from && d.date <= to);
+  }
+  if (currentFilter === 'month') {
+    const prefix = now.toISOString().slice(0, 7);
+    return days.filter(d => d.date.startsWith(prefix));
+  }
+  return days;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('[data-filter]').forEach(b =>
+    b.classList.toggle('active', b.dataset.filter === f));
+  render(document.getElementById('search').value);
+}
+
+function updateStats() {
+  const days    = journal.length;
+  const topics  = journal.reduce((n, d) => n + d.topics.length, 0);
+  const words   = journal.reduce((n, d) =>
+    n + d.topics.reduce((m, t) =>
+      m + (t.content ? t.content.trim().split(/\s+/).filter(Boolean).length : 0), 0), 0);
+  document.getElementById('status-stats').textContent =
+    `${days} Tage · ${topics} Themen · ${words} Wörter`;
+}
+
 function render(q = '') {
   q = q.toLowerCase();
   const container = document.getElementById('journal');
   container.innerHTML = '';
 
-  const days = q ? journal.map(day => {
+  let days = q ? journal.map(day => {
     if (day.date.includes(q)) return day;
     const topics = day.topics.filter(t =>
       t.title.toLowerCase().includes(q) || t.content.toLowerCase().includes(q));
     return topics.length ? { ...day, topics } : null;
   }).filter(Boolean) : journal;
 
+  days = filterByView(days);
+
   if (!days.length) {
-    container.innerHTML = `<div class="no-results">${q ? 'Keine Treffer.' : 'Kein Inhalt. Starte mit &ldquo;+ Tag&rdquo;.'}</div>`;
+    const msg = q ? 'Keine Treffer.' :
+      currentFilter === 'week'  ? 'Keine Einträge diese Woche.' :
+      currentFilter === 'month' ? 'Keine Einträge diesen Monat.' :
+      'Kein Inhalt. Starte mit &ldquo;+ Tag&rdquo;.';
+    container.innerHTML = `<div class="no-results">${msg}</div>`;
+    updateStats();
     return;
   }
   days.forEach(day => container.appendChild(makeDay(day, q)));
+  updateStats();
 }
 
 function makeDay(day, q) {
@@ -670,6 +741,24 @@ function makeTopic(date, topic, q) {
   frag.querySelectorAll('[data-prefix]').forEach(btn =>
     btn.addEventListener('mousedown', e => { e.preventDefault(); insertPrefix(textarea, btn.dataset.prefix); }));
 
+  // ── Bilder: Drag & Drop + Einfügen ──
+  textarea.addEventListener('dragover', e => { e.preventDefault(); textarea.classList.add('drag-over'); });
+  textarea.addEventListener('dragleave', () => textarea.classList.remove('drag-over'));
+  textarea.addEventListener('drop', e => {
+    e.preventDefault();
+    textarea.classList.remove('drag-over');
+    const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+    files.forEach(f => insertImage(textarea, f));
+  });
+  textarea.addEventListener('paste', e => {
+    const files = [...e.clipboardData.items]
+      .filter(i => i.kind === 'file' && i.type.startsWith('image/'))
+      .map(i => i.getAsFile());
+    if (!files.length) return;
+    e.preventDefault();
+    files.forEach(f => insertImage(textarea, f));
+  });
+
   return frag;
 }
 
@@ -711,6 +800,21 @@ function insertPrefix(ta, prefix) {
   ta.value  = ta.value.slice(0, bol) + prefix + ta.value.slice(bol);
   ta.focus();
   ta.setSelectionRange(s + prefix.length, s + prefix.length);
+}
+function insertImage(ta, file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const md     = `![](${ev.target.result})`;
+    const s      = ta.selectionStart;
+    const before = ta.value.slice(0, s);
+    const after  = ta.value.slice(s);
+    const pre    = before.length && !before.endsWith('\n') ? '\n' : '';
+    ta.value     = before + pre + md + '\n' + after;
+    const cur    = (before + pre + md + '\n').length;
+    ta.focus();
+    ta.setSelectionRange(cur, cur);
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── Day / Topic creation ───────────────────────────────────────────────────

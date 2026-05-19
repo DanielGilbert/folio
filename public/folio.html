@@ -64,7 +64,7 @@
       #app-header { flex-wrap: wrap; gap: 0.4rem; }
       #app-header strong { flex: 1; }
       #search { order: 99; flex: 1 0 100%; }
-      #btn-open, #btn-toggle-all, #view-filter { display: none; }
+      #btn-open, .btn-toggle, #view-filter { display: none; }
       #app-header button { font-size: 0.78rem; padding: 0.28rem 0.5rem; }
     }
 
@@ -219,12 +219,14 @@
     dialog h3 { margin-bottom: 1rem; font-size: 1rem; }
     .field { margin-bottom: 0.75rem; }
     .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
-    .field input, .field textarea {
+    .field input, .field textarea, .field select {
       width: 100%; padding: 0.4rem 0.6rem;
       border: 1px solid var(--border); border-radius: var(--radius);
       background: var(--bg); color: var(--text); font-size: 0.9rem;
     }
-    .field input:focus, .field textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    .field input:focus, .field textarea:focus, .field select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    #dlg-templates { max-width: 520px; }
+    #dlg-templates-body { min-height: 12rem; field-sizing: fixed; font-family: 'Menlo','Monaco',monospace; font-size: 0.82rem; }
     .dialog-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
     /* ── Status bar ── */
@@ -237,6 +239,17 @@
       z-index: 20;
     }
     #statusbar.visible { display: flex; }
+
+    /* ── FAB ── */
+    #fab {
+      position: fixed; bottom: 3.5rem; right: 1.5rem;
+      width: 3.2rem; height: 3.2rem; border-radius: 50%;
+      background: var(--accent); color: var(--accent-fg);
+      border: none; font-size: 1.6rem; line-height: 1;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: none; z-index: 15; padding: 0;
+    }
+    #fab:hover { opacity: 0.9; color: var(--accent-fg); }
 
     /* ── View filter ── */
     #view-filter {
@@ -288,7 +301,8 @@
     </div>
     <input type="search" id="search" placeholder="Suchen…" autocomplete="off">
     <button onclick="goToToday()">Heute</button>
-    <button id="btn-toggle-all" onclick="toggleAll()" title="Alle ein-/ausklappen">± Alle</button>
+    <button class="btn-toggle" onclick="toggleAll('.day')"   title="Tage ein-/ausklappen">± Tage</button>
+    <button class="btn-toggle" onclick="toggleAll('.topic')" title="Themen ein-/ausklappen">± Themen</button>
     <button onclick="showNewDayDialog()">+ Tag</button>
     <button id="btn-save" class="primary" onclick="saveFile()">Speichern</button>
     <button id="btn-download" onclick="downloadCurrent()" title="Als journal.md herunterladen" style="display:none">↓ Download</button>
@@ -380,9 +394,32 @@
     <label>Titel</label>
     <input type="text" id="dlg-topic-title" placeholder="z.B. Standup">
   </div>
+  <div class="field" id="dlg-topic-template-field" style="display:none">
+    <label>Template</label>
+    <select id="dlg-topic-template">
+      <option value="">— Kein Template —</option>
+    </select>
+  </div>
   <div class="dialog-footer">
+    <button class="ghost" onclick="openTemplateEditor()" style="margin-right:auto;font-size:0.78rem">⚙ Templates</button>
     <button onclick="document.getElementById('dlg-topic').close()">Abbrechen</button>
     <button class="primary" onclick="confirmNewTopic()">Hinzufügen</button>
+  </div>
+</dialog>
+
+<!-- FAB -->
+<button id="fab" onclick="quickEntry()" title="Neuer Eintrag für heute">+</button>
+
+<!-- Dialog: Templates -->
+<dialog id="dlg-templates">
+  <h3>Templates</h3>
+  <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem">Format: <code>## Titelname</code> gefolgt vom Inhalt. Mehrere Templates durch Leerzeile trennen.</p>
+  <div class="field">
+    <textarea id="dlg-templates-body" placeholder="## Standup&#10;Gestern:&#10;Heute:&#10;Blocker:"></textarea>
+  </div>
+  <div class="dialog-footer">
+    <button onclick="document.getElementById('dlg-templates').close()">Abbrechen</button>
+    <button class="primary" onclick="saveTemplates()">Speichern</button>
   </div>
 </dialog>
 
@@ -403,6 +440,7 @@ const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
 const hasFSA     = 'showOpenFilePicker' in window;
 let currentFilter = 'all';
+let templates    = []; // [{ title, content }]
 
 // ── File I/O ───────────────────────────────────────────────────────────────
 async function openFile() {
@@ -439,13 +477,15 @@ function newJournal() {
 }
 
 function init(markdown) {
-  journal = parse(markdown);
-  isDirty = false;
+  journal   = parse(markdown);
+  templates = parseTemplates(markdown);
+  isDirty   = false;
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('app-header').style.display = 'flex';
   document.getElementById('journal').style.display = 'block';
   document.getElementById('statusbar').classList.add('visible');
   document.getElementById('btn-download').style.display = fileHandle ? 'none' : '';
+  document.getElementById('fab').style.display = 'block';
   updateSaveBtn();
   render();
 }
@@ -506,7 +546,26 @@ setInterval(() => {
 }, 30_000);
 
 // ── Parser ─────────────────────────────────────────────────────────────────
+function parseTemplates(md) {
+  const match = md.match(/<!--\s*folio:templates([\s\S]*?)-->/);
+  if (!match) return [];
+  const result = [];
+  let title = null, lines = [];
+  function flush() {
+    if (title !== null) result.push({ title, content: lines.join('\n').trim() });
+    lines = [];
+  }
+  for (const line of match[1].split('\n')) {
+    if (line.startsWith('## ')) { flush(); title = line.slice(3).trim(); }
+    else if (title !== null) lines.push(line);
+  }
+  flush();
+  return result;
+}
+
 function parse(md) {
+  // Strip template block so its headings don't get parsed as topics
+  const src  = md.replace(/<!--\s*folio:templates[\s\S]*?-->/g, '');
   const days = [];
   let day = null, title = null, lines = [];
 
@@ -516,7 +575,7 @@ function parse(md) {
     lines = [];
   }
 
-  for (const line of md.split('\n')) {
+  for (const line of src.split('\n')) {
     if (line.startsWith('# ')) {
       flush(); title = null;
       day = { date: line.slice(2).trim(), topics: [] };
@@ -541,7 +600,12 @@ function serialize() {
       out.push('');
     }
   }
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+  let result = out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+  if (templates.length) {
+    const block = templates.map(t => `## ${t.title}\n${t.content}`).join('\n\n');
+    result += '\n<!-- folio:templates\n' + block + '\n-->\n';
+  }
+  return result;
 }
 
 // ── Dirty / Save button ────────────────────────────────────────────────────
@@ -818,8 +882,8 @@ function insertImage(ta, file) {
 }
 
 // ── Day / Topic creation ───────────────────────────────────────────────────
-function toggleAll() {
-  const all = document.querySelectorAll('.day, .topic');
+function toggleAll(sel) {
+  const all = document.querySelectorAll(sel);
   const anyOpen = [...all].some(el => !el.classList.contains('collapsed'));
   all.forEach(el => el.classList.toggle('collapsed', anyOpen));
 }
@@ -858,6 +922,18 @@ function confirmNewDay() {
 function showNewTopicDialog(date) {
   pendingDate = date;
   document.getElementById('dlg-topic-title').value = '';
+  const sel   = document.getElementById('dlg-topic-template');
+  const field = document.getElementById('dlg-topic-template-field');
+  sel.innerHTML = '<option value="">— Kein Template —</option>';
+  templates.forEach((t, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = t.title;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => {
+    if (sel.value !== '') document.getElementById('dlg-topic-title').value = templates[sel.value].title;
+  };
+  field.style.display = templates.length ? '' : 'none';
   document.getElementById('dlg-topic').showModal();
   setTimeout(() => document.getElementById('dlg-topic-title').focus(), 50);
 }
@@ -866,10 +942,57 @@ function confirmNewTopic() {
   if (!title) return;
   const day = journal.find(d => d.date === pendingDate);
   if (!day || day.topics.some(t => t.title === title)) return;
-  day.topics.push({ title, content: '' });
+  const sel    = document.getElementById('dlg-topic-template');
+  const tplIdx = sel.value !== '' ? parseInt(sel.value) : -1;
+  const content = tplIdx >= 0 ? templates[tplIdx].content : '';
+  day.topics.push({ title, content });
   markDirty();
   document.getElementById('dlg-topic').close();
   render(document.getElementById('search').value);
+  if (tplIdx >= 0) {
+    setTimeout(() => {
+      const dayEl    = document.querySelector(`[data-date="${pendingDate}"]`);
+      const topicEls = dayEl?.querySelectorAll('.topic');
+      topicEls?.[topicEls.length - 1]?.querySelector('.topic-preview')?.click();
+    }, 100);
+  }
+}
+
+function openTemplateEditor() {
+  document.getElementById('dlg-templates-body').value =
+    templates.map(t => `## ${t.title}\n${t.content}`).join('\n\n');
+  document.getElementById('dlg-topic').close();
+  document.getElementById('dlg-templates').showModal();
+}
+function saveTemplates() {
+  const result = [];
+  let title = null, lines = [];
+  function flush() {
+    if (title !== null) result.push({ title, content: lines.join('\n').trim() });
+    lines = [];
+  }
+  for (const line of document.getElementById('dlg-templates-body').value.split('\n')) {
+    if (line.startsWith('## ')) { flush(); title = line.slice(3).trim(); }
+    else if (title !== null) lines.push(line);
+  }
+  flush();
+  templates = result;
+  markDirty();
+  document.getElementById('dlg-templates').close();
+}
+
+function quickEntry() {
+  const date = today();
+  if (!journal.some(d => d.date === date)) {
+    const i = journal.findIndex(d => d.date < date);
+    const entry = { date, topics: [] };
+    i < 0 ? journal.push(entry) : journal.splice(i, 0, entry);
+    markDirty(); render();
+  }
+  setTimeout(() => {
+    document.querySelector(`[data-date="${date}"]`)?.scrollIntoView({ behavior: 'smooth' });
+    showNewTopicDialog(date);
+  }, 50);
 }
 
 // ── Search ─────────────────────────────────────────────────────────────────
@@ -890,6 +1013,9 @@ document.getElementById('dlg-day').addEventListener('keydown', e => {
 });
 document.getElementById('dlg-topic').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); confirmNewTopic(); }
+});
+document.getElementById('dlg-templates').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); saveTemplates(); }
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────

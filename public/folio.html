@@ -20,6 +20,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Folio</title>
+  <script>
+    // Apply the saved theme before first paint to avoid a flash of the wrong palette.
+    // (Key duplicated from LS_THEME below; this must run before the main script.)
+    try { var t = localStorage.getItem('folio_theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <style>
     :root {
       --bg:         #ffffff;
@@ -31,13 +36,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
       --accent-fg:  #ffffff;
       --radius:     6px;
     }
+    /* Explicit dark choice (set via the toggle, persisted in localStorage). */
+    :root[data-theme="dark"] {
+      --bg:      #222222;
+      --surface: #2b2b2b;
+      --border:  #4a4a4a;
+      --text:    #e8e8e8;
+      --muted:   #888888;
+      --accent:    #60a5fa;
+      --accent-fg: #0a2540;
+    }
+    /* Follow the system preference only while the user hasn't picked a theme. */
     @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:      #111111;
-        --surface: #1e1e1e;
-        --border:  #333333;
+      :root:not([data-theme]) {
+        --bg:      #222222;
+        --surface: #2b2b2b;
+        --border:  #4a4a4a;
         --text:    #e8e8e8;
         --muted:   #888888;
+        --accent:    #60a5fa;
+      --accent-fg: #0a2540;
       }
     }
 
@@ -258,6 +276,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     }
     #statusbar a { color: var(--muted); text-decoration: none; }
     #statusbar a:hover { color: var(--accent); }
+    .theme-toggle {
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; line-height: 1; padding: 0 0.3rem;
+      color: var(--muted);
+    }
+    .theme-toggle:hover { color: var(--accent); }
 
     /* ── FAB ── */
     #fab {
@@ -310,7 +334,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
       Unsaved changes from <strong id="restore-date"></strong>.
       <button onclick="restoreFromStorage()">Restore</button>
     </div>
-    <span class="app-version"></span>
+    <a class="app-version" href="https://github.com/DanielGilbert/folio/blob/main/CHANGELOG.md" target="_blank" rel="noopener" title="View changelog on GitHub"></a>
   </div>
 
   <!-- App header (hidden until file is loaded) -->
@@ -341,7 +365,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
 <div id="statusbar">
   <span id="status-file"></span>
   <span id="status-stats"></span>
-  <span><span class="app-version"></span> · Made with ☕️ &amp; ❤️ by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a></span>
+  <span><a class="app-version" href="https://github.com/DanielGilbert/folio/blob/main/CHANGELOG.md" target="_blank" rel="noopener" title="View changelog on GitHub"></a> · Made with ☕️ &amp; ❤️ by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a> · <button class="theme-toggle" onclick="toggleTheme()"></button></span>
 </div>
 
 <!-- Template: Day -->
@@ -470,6 +494,7 @@ let pendingDate = null;
 const APP_VERSION = '1.0.0';
 const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
+const LS_THEME   = 'folio_theme';
 const hasFSA     = 'showOpenFilePicker' in window;
 let currentFilter = 'all';
 let templates    = []; // [{ title, content }]
@@ -481,6 +506,35 @@ const IMG_QUALITY  = 0.8;   // WebP quality (0–1)
 
 // Stamp the version into every .app-version slot (welcome + status bar).
 document.querySelectorAll('.app-version').forEach(el => el.textContent = 'v' + APP_VERSION);
+
+// Hint at what "Save" does, which differs by browser capability.
+document.getElementById('btn-save').title = hasFSA
+  ? 'Save to a .md file you can keep editing right here in the browser'
+  : 'Save a backup in this browser — use ↓ Download to get the .md file';
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+// The saved theme is already applied in <head>; here we just keep the toggle
+// in sync. Without an explicit choice we follow the system preference.
+function currentTheme() {
+  return document.documentElement.dataset.theme
+    || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem(LS_THEME, theme);
+  updateThemeToggle();
+}
+function toggleTheme() {
+  applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+}
+function updateThemeToggle() {
+  const dark = currentTheme() === 'dark';
+  document.querySelectorAll('.theme-toggle').forEach(b => {
+    b.textContent = dark ? '☀️' : '🌙';
+    b.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  });
+}
+updateThemeToggle();
 
 // ── File I/O ───────────────────────────────────────────────────────────────
 async function openFile() {
@@ -514,6 +568,7 @@ function newJournal() {
   fileHandle = null;
   init('');
   setStatus('New journal');
+  quickEntry();   // create today's entry and open the new-topic dialog right away
 }
 
 function init(markdown) {
@@ -531,8 +586,25 @@ function init(markdown) {
 
 async function saveFile() {
   const content = serialize();
+  // Always keep a local-storage backup, regardless of how saving goes.
   localStorage.setItem(LS_CONTENT, content);
   localStorage.setItem(LS_TS, new Date().toISOString());
+
+  // Chrome/Edge: if this journal isn't tied to a file yet, offer to save it to
+  // disk. From then on we hold the handle and write straight to that file, so
+  // the user can keep editing it right here in the browser.
+  if (!fileHandle && hasFSA) {
+    try {
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName: 'journal.md',
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
+      });
+    } catch (e) {
+      if (e.name === 'AbortError') return;   // picker cancelled – stay dirty
+      // Any other error: fall through to a local-storage-only save below.
+    }
+  }
+
   isDirty = false;
   updateSaveBtn();
 
@@ -540,10 +612,12 @@ async function saveFile() {
     try {
       const w = await fileHandle.createWritable();
       await w.write(content); await w.close();
+      document.getElementById('btn-download').style.display = 'none';
+      setStatus(`📄 ${fileHandle.name}`);
       flashBtn('✓ Saved');
     } catch (e) { alert('Save failed: ' + e.message); }
   } else {
-    flashBtn('✓ Saved');
+    flashBtn('✓ Saved to browser');
   }
 }
 

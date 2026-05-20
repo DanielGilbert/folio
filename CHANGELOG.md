@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Light/dark theme toggle in the status bar; the choice is persisted in `localStorage` and applied before first paint to avoid a flash. Without an explicit choice the system preference is followed.
+- The version number in the status bar and welcome screen now links to the changelog on GitHub.
+
+### Changed
+
+- "Start fresh" now creates today's entry and opens the new-topic dialog immediately, so you can start writing in one step instead of navigating two dialogs.
+- "Save" in Chrome/Edge now offers to save to a real `.md` file (via the File System Access API) when the journal isn't tied to one yet, then writes directly to that file on subsequent saves — making it clear you can keep editing the file in the browser. Browsers without the API continue to save a local-storage backup and download.
+
 ## [1.0.0] - 2026-05-20
 
 ### Added

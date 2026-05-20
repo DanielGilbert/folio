@@ -68,6 +68,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
       line-height: 1.6;
     }
 
+    /* ── Icons ──
+       Inline SVG sprite, referenced via <use>. stroke/fill are inherited CSS
+       properties, so currentColor here flows into the cloned symbol content —
+       the icons take on the surrounding text colour automatically. */
+    .ic {
+      width: 1em; height: 1em;
+      vertical-align: -0.125em;
+      flex: none;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     /* ── Layout ── */
     #app { max-width: 760px; margin: 0 auto; padding: 0 1rem; }
 
@@ -320,6 +335,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
 </head>
 <body>
 
+<!-- Icon sprite (Feather/Lucide outline icons, MIT licensed). Referenced via
+     <svg class="ic"><use href="#ic-…"/></svg>; colour comes from currentColor. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="ic-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="ic-sparkles" viewBox="0 0 24 24"><path d="M9.94 14.06 2.37 12 9.94 9.94 12 2.37l2.06 7.57L21.63 12l-7.57 2.06L12 21.63z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></symbol>
+  <symbol id="ic-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="ic-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></symbol>
+  <symbol id="ic-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="ic-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="ic-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+  <symbol id="ic-coffee" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></symbol>
+  <symbol id="ic-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  <symbol id="ic-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="ic-arrow-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
+  <symbol id="ic-arrow-down" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
+  <symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></symbol>
+  <symbol id="ic-checklist" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+</svg>
+
 <div id="app">
 
   <!-- Welcome -->
@@ -327,8 +362,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     <h1>Folio</h1>
     <p>Your personal work journal. Open a <code>journal.md</code> or start fresh.</p>
     <div class="welcome-actions">
-      <button class="primary" onclick="openFile()">📂 Open file</button>
-      <button onclick="newJournal()">✨ Start fresh</button>
+      <button class="primary" onclick="openFile()"><svg class="ic"><use href="#ic-folder"/></svg> Open file</button>
+      <button onclick="newJournal()"><svg class="ic"><use href="#ic-sparkles"/></svg> Start fresh</button>
     </div>
     <div id="restore-hint">
       Unsaved changes from <strong id="restore-date"></strong>.
@@ -351,8 +386,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     <button id="btn-toggle-topics" class="btn-toggle" onclick="toggleAll('.topic')" title="Collapse/expand topics">± Topics</button>
     <button onclick="showNewDayDialog()">+ Day</button>
     <button id="btn-save" class="primary" onclick="saveFile()">Save</button>
-    <button id="btn-download" onclick="downloadCurrent()" title="Download as journal.md" style="display:none">↓ Download</button>
-    <button id="btn-open" onclick="openFile()" title="Open another file">📂</button>
+    <button id="btn-download" onclick="downloadCurrent()" title="Download as journal.md" style="display:none"><svg class="ic"><use href="#ic-download"/></svg> Download</button>
+    <button id="btn-open" onclick="openFile()" title="Open another file"><svg class="ic"><use href="#ic-folder"/></svg></button>
   </header>
 
   <!-- Journal -->
@@ -365,7 +400,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
 <div id="statusbar">
   <span id="status-file"></span>
   <span id="status-stats"></span>
-  <span><a class="app-version" href="https://github.com/DanielGilbert/folio/blob/main/CHANGELOG.md" target="_blank" rel="noopener" title="View changelog on GitHub"></a> · Made with ☕️ &amp; ❤️ by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a> · <button class="theme-toggle" onclick="toggleTheme()"></button></span>
+  <span><a class="app-version" href="https://github.com/DanielGilbert/folio/blob/main/CHANGELOG.md" target="_blank" rel="noopener" title="View changelog on GitHub"></a> · Made with <svg class="ic"><use href="#ic-coffee"/></svg> &amp; <svg class="ic"><use href="#ic-heart"/></svg> by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a> · <button class="theme-toggle" onclick="toggleTheme()"></button></span>
 </div>
 
 <!-- Template: Day -->
@@ -375,7 +410,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
       <span class="day-date"></span>
       <div class="day-actions">
         <button class="ghost add-topic-btn">+ Topic</button>
-        <button class="ghost danger delete-day-btn">✕</button>
+        <button class="ghost danger delete-day-btn" title="Delete day"><svg class="ic"><use href="#ic-x"/></svg></button>
       </div>
     </div>
     <div class="topics"></div>
@@ -389,10 +424,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
       <span class="topic-title"></span>
       <input class="topic-title-input" type="text">
       <div class="topic-actions">
-        <button class="ghost move-up-btn"   title="Move up">↑</button>
-        <button class="ghost move-down-btn" title="Move down">↓</button>
-        <button class="ghost rename-btn"    title="Rename">✎</button>
-        <button class="ghost danger delete-topic-btn" title="Delete">✕</button>
+        <button class="ghost move-up-btn"   title="Move up"><svg class="ic"><use href="#ic-arrow-up"/></svg></button>
+        <button class="ghost move-down-btn" title="Move down"><svg class="ic"><use href="#ic-arrow-down"/></svg></button>
+        <button class="ghost rename-btn"    title="Rename"><svg class="ic"><use href="#ic-pencil"/></svg></button>
+        <button class="ghost danger delete-topic-btn" title="Delete"><svg class="ic"><use href="#ic-x"/></svg></button>
       </div>
     </div>
     <div class="topic-preview"></div>
@@ -407,9 +442,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
         <span class="tb-sep"></span>
         <button type="button" data-prefix="- "  title="Unordered list">• —</button>
         <button type="button" data-prefix="1. " title="Ordered list">1.</button>
-        <button type="button" data-prefix="- [ ] " title="Checklist">☐</button>
+        <button type="button" data-prefix="- [ ] " title="Checklist"><svg class="ic"><use href="#ic-checklist"/></svg></button>
         <span class="tb-sep"></span>
-        <button type="button" data-wrap="[|](url)" title="Link">🔗</button>
+        <button type="button" data-wrap="[|](url)" title="Link"><svg class="ic"><use href="#ic-link"/></svg></button>
         <button type="button" data-wrap="`|`"       title="Inline code">&lt;&gt;</button>
         <button type="button" data-wrap="```\n|\n```" title="Code block">```</button>
       </div>
@@ -449,7 +484,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     </select>
   </div>
   <div class="dialog-footer">
-    <button class="ghost" onclick="openTemplateEditor()" style="margin-right:auto;font-size:0.78rem">⚙ Templates</button>
+    <button class="ghost" onclick="openTemplateEditor()" style="margin-right:auto;font-size:0.78rem"><svg class="ic"><use href="#ic-settings"/></svg> Templates</button>
     <button onclick="document.getElementById('dlg-topic').close()">Cancel</button>
     <button class="primary" onclick="confirmNewTopic()">Add</button>
   </div>
@@ -510,7 +545,7 @@ document.querySelectorAll('.app-version').forEach(el => el.textContent = 'v' + A
 // Hint at what "Save" does, which differs by browser capability.
 document.getElementById('btn-save').title = hasFSA
   ? 'Save to a .md file you can keep editing right here in the browser'
-  : 'Save a backup in this browser — use ↓ Download to get the .md file';
+  : 'Save a backup in this browser — use Download to get the .md file';
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 // The saved theme is already applied in <head>; here we just keep the toggle
@@ -530,7 +565,7 @@ function toggleTheme() {
 function updateThemeToggle() {
   const dark = currentTheme() === 'dark';
   document.querySelectorAll('.theme-toggle').forEach(b => {
-    b.textContent = dark ? '☀️' : '🌙';
+    b.innerHTML = `<svg class="ic"><use href="#ic-${dark ? 'sun' : 'moon'}"/></svg>`;
     b.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
   });
 }
@@ -546,7 +581,7 @@ async function openFile() {
       fileHandle = handle;
       const file = await handle.getFile();
       init(await file.text());
-      setStatus(`📄 ${handle.name}`);
+      setFileStatus(handle.name);
     } catch (e) {
       if (e.name !== 'AbortError') alert('Error opening file: ' + e.message);
     }
@@ -560,7 +595,7 @@ document.getElementById('file-input').addEventListener('change', async e => {
   if (!file) return;
   fileHandle = null;
   init(await file.text());
-  setStatus(`📄 ${file.name}`);
+  setFileStatus(file.name);
   e.target.value = '';
 });
 
@@ -613,7 +648,7 @@ async function saveFile() {
       const w = await fileHandle.createWritable();
       await w.write(content); await w.close();
       document.getElementById('btn-download').style.display = 'none';
-      setStatus(`📄 ${fileHandle.name}`);
+      setFileStatus(fileHandle.name);
       flashBtn('✓ Saved');
     } catch (e) { alert('Save failed: ' + e.message); }
   } else {
@@ -1182,8 +1217,12 @@ const esc  = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt
 const hl   = (s, q) => esc(s).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<mark>${m}</mark>`);
 const today = () => new Date().toISOString().slice(0, 10);
 
-function setStatus(file) {
-  document.getElementById('status-file').textContent = file;
+function setStatus(text) {
+  document.getElementById('status-file').textContent = text;
+}
+function setFileStatus(name) {
+  document.getElementById('status-file').innerHTML =
+    '<svg class="ic"><use href="#ic-file"/></svg> ' + esc(name);
 }
 </script>
 </body>

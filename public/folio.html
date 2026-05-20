@@ -1,5 +1,6 @@
 <!--folio.html - a simple journal frontend
-Copyright (C) 2006 Daniel Gilbert
+Version 1.0.0
+Copyright (C) 2026 Daniel Gilbert
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -114,6 +115,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     .welcome-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem; }
     #restore-hint { font-size: 0.85rem; color: var(--muted); padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); display: none; }
     #restore-hint button { margin-left: 0.5rem; }
+    #welcome .app-version { color: var(--muted); font-size: 0.8rem; opacity: 0.7; }
 
     /* ── Journal ── */
     #journal { display: none; padding: 1.5rem 0 4rem; }
@@ -308,6 +310,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
       Unsaved changes from <strong id="restore-date"></strong>.
       <button onclick="restoreFromStorage()">Restore</button>
     </div>
+    <span class="app-version"></span>
   </div>
 
   <!-- App header (hidden until file is loaded) -->
@@ -338,7 +341,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
 <div id="statusbar">
   <span id="status-file"></span>
   <span id="status-stats"></span>
-  <span>Made with ☕️ &amp; ❤️ by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a></span>
+  <span><span class="app-version"></span> · Made with ☕️ &amp; ❤️ by <a href="https://github.com/DanielGilbert/folio" target="_blank" rel="noopener">Daniel Gilbert</a></span>
 </div>
 
 <!-- Template: Day -->
@@ -464,11 +467,20 @@ let fileHandle = null;   // FileSystemFileHandle (FSA API)
 let isDirty    = false;
 let pendingDate = null;
 
+const APP_VERSION = '1.0.0';
 const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
 const hasFSA     = 'showOpenFilePicker' in window;
 let currentFilter = 'all';
 let templates    = []; // [{ title, content }]
+
+// Image embedding: downscale + recompress before storing as a data URI,
+// so the journal stays a single portable .md without ballooning in size.
+const IMG_MAX_EDGE = 1600;  // px – longest edge after downscaling
+const IMG_QUALITY  = 0.8;   // WebP quality (0–1)
+
+// Stamp the version into every .app-version slot (welcome + status bar).
+document.querySelectorAll('.app-version').forEach(el => el.textContent = 'v' + APP_VERSION);
 
 // ── File I/O ───────────────────────────────────────────────────────────────
 async function openFile() {
@@ -907,19 +919,51 @@ function insertPrefix(ta, prefix) {
   ta.setSelectionRange(s + prefix.length, s + prefix.length);
 }
 function insertImage(ta, file) {
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const md     = `![](${ev.target.result})`;
-    const s      = ta.selectionStart;
-    const before = ta.value.slice(0, s);
-    const after  = ta.value.slice(s);
-    const pre    = before.length && !before.endsWith('\n') ? '\n' : '';
-    ta.value     = before + pre + md + '\n' + after;
-    const cur    = (before + pre + md + '\n').length;
-    ta.focus();
-    ta.setSelectionRange(cur, cur);
-  };
-  reader.readAsDataURL(file);
+  // Vector / animated formats are embedded untouched to keep scalability /
+  // animation; everything else gets downscaled and recompressed.
+  const passthrough = file.type === 'image/svg+xml' || file.type === 'image/gif';
+  (passthrough ? readAsDataURL(file) : downscaleImage(file))
+    .then(uri => embedImage(ta, uri))
+    .catch(() => alert('Could not read image.'));
+}
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function downscaleImage(file) {
+  const original = await readAsDataURL(file);
+  const img = new Image();
+  await new Promise((resolve, reject) => {
+    img.onload = resolve; img.onerror = reject; img.src = original;
+  });
+  const scale = Math.min(1, IMG_MAX_EDGE / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+  const canvas  = document.createElement('canvas');
+  canvas.width  = w;
+  canvas.height = h;
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+  // WebP keeps both photos and transparency small; if the browser can't encode
+  // WebP it falls back to PNG. Never embed something larger than the original.
+  const out = canvas.toDataURL('image/webp', IMG_QUALITY);
+  return out.length < original.length ? out : original;
+}
+
+function embedImage(ta, uri) {
+  const md     = `![](${uri})`;
+  const s      = ta.selectionStart;
+  const before = ta.value.slice(0, s);
+  const after  = ta.value.slice(s);
+  const pre    = before.length && !before.endsWith('\n') ? '\n' : '';
+  ta.value     = before + pre + md + '\n' + after;
+  const cur    = (before + pre + md + '\n').length;
+  ta.focus();
+  ta.setSelectionRange(cur, cur);
 }
 
 // ── Day / Topic creation ───────────────────────────────────────────────────

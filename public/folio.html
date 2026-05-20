@@ -986,7 +986,7 @@ function confirmNewTopic() {
   const sel    = document.getElementById('dlg-topic-template');
   const tplIdx = sel.value !== '' ? parseInt(sel.value) : -1;
   const content = tplIdx >= 0 ? templates[tplIdx].content : '';
-  day.topics.push({ title, content });
+  day.topics.unshift({ title, content });
   markDirty();
   document.getElementById('dlg-topic').close();
   render(document.getElementById('search').value);

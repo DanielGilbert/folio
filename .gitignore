@@ -17,106 +17,31 @@ Icon
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 
-### VisualStudio
-# User-specific files
-*.suo
-*.user
+### Windows
+# Windows thumbnail cache files
+Thumbs.db
 
-# Build results
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-[Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-[Bb]in/
-[Oo]bj/
+# Folder config file
+[Dd]esktop.ini
 
-# Visual Studio cache/options directory
-.vs/
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
 
-# MSTest test Results
-[Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
+# Windows shortcuts
+*.lnk
 
-# NuGet
-*.nupkg
-**/[Pp]ackages/*
-!**/[Pp]ackages/build/
-*.nuget.props
-*.nuget.targets
+### Linux
+# Backup files
+*~
 
-# Publish Web Output
-*.[Pp]ublish.xml
+# Temporary files from deleted open files
+.fuse_hidden*
 
-### C#
-# Build results
-[Bb]in/
-[Oo]bj/
+# KDE directory preferences
+.directory
 
-# Visual Studio cache/options directory
-.vs/
+# Linux trash folder
+.Trash-*
 
-# User-specific files
-*.suo
-*.user
-
-# Debug symbols
-*.pdb
-
-# NuGet Packages
-*.nupkg
-**/[Pp]ackages/*
-!**/[Pp]ackages/build/
-
-# .NET build artifacts
-artifacts/
-
-# Publish output
-publish/
-
-### Node
-# Dependencies
-node_modules/
-
-# Logs
-*.log
-
-# Runtime data
-*.pid
-*.pid.lock
-
-# Coverage
-coverage/
-*.lcov
-.nyc_output
-
-# Build output
-dist/
-build/Release
-
-# TypeScript cache
-*.tsbuildinfo
-
-# Framework build output and caches
-.cache
-.parcel-cache
-.next
-out/
-.nuxt
-
-# dotenv environment variable files
-.env
-.env.local
-.env.*.local
-
-# npm cache directory
-.npm
-*.tgz
-
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/install-state.gz
-.pnp.*
+# NFS temporary files
+.nfs*

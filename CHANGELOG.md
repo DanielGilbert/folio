@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-20
+
 ### Added
 
 - Light/dark theme toggle in the status bar; the choice is persisted in `localStorage` and applied before first paint to avoid a flash. Without an explicit choice the system preference is followed.
@@ -33,5 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic local-storage backup with a restore prompt, plus an unsaved-changes warning before leaving the page.
 - Light and dark themes following the system preference.
 
-[Unreleased]: https://github.com/DanielGilbert/folio/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/DanielGilbert/folio/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/DanielGilbert/folio/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DanielGilbert/folio/releases/tag/v1.0.0

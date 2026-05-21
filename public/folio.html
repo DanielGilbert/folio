@@ -1,5 +1,5 @@
 <!--folio.html - a simple journal frontend
-Version 1.2.0
+Version 1.2.1
 Copyright (C) 2026 Daniel Gilbert
 
 This program is free software: you can redistribute it and/or modify
@@ -568,7 +568,7 @@ let fileHandle = null;   // FileSystemFileHandle (FSA API)
 let isDirty    = false;
 let pendingDate = null;
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
 const LS_THEME   = 'folio_theme';
@@ -823,12 +823,12 @@ function filterByView(days) {
   if (currentFilter === 'week') {
     const mon = new Date(now);
     mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    const from = mon.toISOString().slice(0, 10);
+    const from = localDate(mon);
     const to   = today();
     return days.filter(d => d.date >= from && d.date <= to);
   }
   if (currentFilter === 'month') {
-    const prefix = now.toISOString().slice(0, 7);
+    const prefix = today().slice(0, 7);
     return days.filter(d => d.date.startsWith(prefix));
   }
   return days;
@@ -1335,7 +1335,11 @@ document.getElementById('dlg-templates').addEventListener('keydown', e => {
 // ── Helpers ────────────────────────────────────────────────────────────────
 const esc  = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const hl   = (s, q) => esc(s).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<mark>${m}</mark>`);
-const today = () => new Date().toISOString().slice(0, 10);
+// Local date as YYYY-MM-DD. NOT toISOString() — that's UTC, which rolls over a
+// day early in timezones ahead of UTC (e.g. CEST), dating new entries "yesterday".
+const pad2      = n => String(n).padStart(2, '0');
+const localDate = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const today     = () => localDate(new Date());
 
 function setStatus(text) {
   document.getElementById('status-file').textContent = text;

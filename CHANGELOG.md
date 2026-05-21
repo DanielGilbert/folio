@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-05-22
+
+### Fixed
+
+- New entries are now dated using the local date instead of UTC. Previously, early in the day in timezones ahead of UTC (e.g. CEST), a new entry could be stamped with the previous day's date. The Week/Month filters use the local date for the same reason.
+
 ## [1.2.0] - 2026-05-21
 
 ### Added
@@ -49,7 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic local-storage backup with a restore prompt, plus an unsaved-changes warning before leaving the page.
 - Light and dark themes following the system preference.
 
-[Unreleased]: https://github.com/DanielGilbert/folio/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/DanielGilbert/folio/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/DanielGilbert/folio/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/DanielGilbert/folio/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/DanielGilbert/folio/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DanielGilbert/folio/releases/tag/v1.0.0

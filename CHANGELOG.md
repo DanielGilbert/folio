@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-21
+
+### Added
+
+- Calendar picker (toolbar button next to "Today"): days that contain an entry are filled in the accent colour; clicking one jumps and scrolls to that day. Navigate months with the arrows; the current day is outlined. If a Week/Month filter is hiding the target day, the view falls back to All.
+
 ### Fixed
 
 - Deleting, moving, or removing a day no longer jumps the page back to the top — the scroll position is preserved across the re-render.
@@ -43,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic local-storage backup with a restore prompt, plus an unsaved-changes warning before leaving the page.
 - Light and dark themes following the system preference.
 
-[Unreleased]: https://github.com/DanielGilbert/folio/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/DanielGilbert/folio/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/DanielGilbert/folio/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/DanielGilbert/folio/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DanielGilbert/folio/releases/tag/v1.0.0

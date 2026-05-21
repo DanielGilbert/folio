@@ -1,5 +1,5 @@
 <!--folio.html - a simple journal frontend
-Version 1.1.0
+Version 1.2.0
 Copyright (C) 2026 Daniel Gilbert
 
 This program is free software: you can redistribute it and/or modify
@@ -154,7 +154,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     #journal { display: none; padding: 1.5rem 0 4rem; }
 
     /* ── Day ── */
-    .day { margin-bottom: 2rem; }
+    .day { margin-bottom: 2rem; scroll-margin-top: 4rem; }
     .day-header {
       display: flex; align-items: center; gap: 0.5rem;
       margin-bottom: 0.75rem;
@@ -280,6 +280,28 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     #dlg-templates-body { min-height: 12rem; field-sizing: fixed; font-family: 'Menlo','Monaco',monospace; font-size: 0.82rem; }
     .dialog-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
 
+    /* ── Calendar picker ── */
+    #dlg-calendar { max-width: 340px; }
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .cal-header strong { font-size: 0.95rem; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-wd { font-size: 0.7rem; color: var(--muted); text-align: center; padding: 0.2rem 0; }
+    .cal-day {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; border-radius: var(--radius); color: var(--muted);
+    }
+    .cal-day.blank { visibility: hidden; }
+    .cal-day.today { outline: 2px solid var(--accent); outline-offset: -2px; color: var(--text); }
+    .cal-day.has-entry { background: var(--accent); color: var(--accent-fg); font-weight: 600; cursor: pointer; }
+    .cal-day.has-entry:hover { opacity: 0.85; }
+
+    /* Brief highlight when jumping to a day from the calendar. */
+    @keyframes cal-flash {
+      0%, 100% { background: transparent; }
+      20%      { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+    }
+    .day.flash { animation: cal-flash 1.2s ease; border-radius: var(--radius); }
+
     /* ── Status bar ── */
     #statusbar {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -356,6 +378,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
   <symbol id="ic-arrow-down" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
   <symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></symbol>
   <symbol id="ic-checklist" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="ic-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="ic-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="ic-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
 </svg>
 
 <div id="app">
@@ -385,6 +410,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     </div>
     <input type="search" id="search" placeholder="Search…" autocomplete="off">
     <button onclick="goToToday()">Today</button>
+    <button onclick="openCalendar()" title="Jump to a day"><svg class="ic"><use href="#ic-calendar"/></svg></button>
     <button id="btn-toggle-days"   class="btn-toggle" onclick="toggleAll('.day')"   title="Collapse/expand days">± Days</button>
     <button id="btn-toggle-topics" class="btn-toggle" onclick="toggleAll('.topic')" title="Collapse/expand topics">± Topics</button>
     <button onclick="showNewDayDialog()">+ Day</button>
@@ -473,6 +499,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
   </div>
 </dialog>
 
+<!-- Dialog: Calendar -->
+<dialog id="dlg-calendar">
+  <div class="cal-header">
+    <button class="ghost" onclick="calShift(-1)" title="Previous month"><svg class="ic"><use href="#ic-chevron-left"/></svg></button>
+    <strong id="cal-label"></strong>
+    <button class="ghost" onclick="calShift(1)" title="Next month"><svg class="ic"><use href="#ic-chevron-right"/></svg></button>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="dialog-footer">
+    <button onclick="document.getElementById('dlg-calendar').close()">Close</button>
+  </div>
+</dialog>
+
 <!-- Dialog: New Topic -->
 <dialog id="dlg-topic">
   <h3>New Topic</h3>
@@ -529,7 +568,7 @@ let fileHandle = null;   // FileSystemFileHandle (FSA API)
 let isDirty    = false;
 let pendingDate = null;
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
 const LS_THEME   = 'folio_theme';
@@ -539,7 +578,7 @@ let templates    = []; // [{ title, content }]
 
 // Image embedding: downscale + recompress before storing as a data URI,
 // so the journal stays a single portable .md without ballooning in size.
-const IMG_MAX_EDGE = 1600;  // px – longest edge after downscaling
+const IMG_MAX_EDGE = 750;  // px – longest edge after downscaling
 const IMG_QUALITY  = 0.8;   // WebP quality (0–1)
 
 // Stamp the version into every .app-version slot (welcome + status bar).
@@ -1102,6 +1141,76 @@ function goToToday() {
     markDirty(); render();
   }
   setTimeout(() => document.querySelector(`[data-date="${date}"]`)?.scrollIntoView({ behavior: 'smooth' }), 50);
+}
+
+// ── Calendar picker ──────────────────────────────────────────────────────────
+let calCursor = null;   // first day of the month currently shown in the picker
+
+function openCalendar() {
+  // Open on the most recent entry's month, or the current month when empty.
+  const [y, m] = (journal.length ? journal[0].date : today()).split('-').map(Number);
+  calCursor = new Date(y, m - 1, 1);
+  renderCalendar();
+  document.getElementById('dlg-calendar').showModal();
+}
+
+function calShift(delta) {
+  calCursor.setMonth(calCursor.getMonth() + delta);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  document.getElementById('cal-label').textContent =
+    calCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  const have = new Set(journal.map(d => d.date));
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  for (const wd of ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']) {
+    const el = document.createElement('div');
+    el.className = 'cal-wd';
+    el.textContent = wd;
+    grid.appendChild(el);
+  }
+
+  const offset = (new Date(y, m, 1).getDay() + 6) % 7;   // Monday-first
+  for (let i = 0; i < offset; i++) {
+    const b = document.createElement('div');
+    b.className = 'cal-day blank';
+    grid.appendChild(b);
+  }
+
+  const pad  = n => String(n).padStart(2, '0');
+  const days = new Date(y, m + 1, 0).getDate();
+  for (let d = 1; d <= days; d++) {
+    const ds   = `${y}-${pad(m + 1)}-${pad(d)}`;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    cell.textContent = d;
+    if (ds === today()) cell.classList.add('today');
+    if (have.has(ds)) {
+      cell.classList.add('has-entry');
+      cell.title = 'Jump to this day';
+      cell.onclick = () => jumpToDate(ds);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+function jumpToDate(ds) {
+  document.getElementById('dlg-calendar').close();
+  // A Week/Month filter may hide the target day — fall back to All so it shows.
+  if (!document.querySelector(`[data-date="${ds}"]`)) setFilter('all');
+  const el = document.querySelector(`[data-date="${ds}"]`);
+  if (!el) return;
+  el.classList.remove('collapsed');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.remove('flash');
+  void el.offsetWidth;            // restart the animation if jumped again
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 1200);
 }
 
 function showNewDayDialog() {

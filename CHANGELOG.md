@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Deleting, moving, or removing a day no longer jumps the page back to the top — the scroll position is preserved across the re-render.
+
+### Changed
+
+- The "+" action button (FAB) now sits just to the right of the content column on wide screens instead of clinging to the browser's right edge, and only overlaps the content once the viewport gets too narrow.
+
 ## [1.1.0] - 2026-05-20
 
 ### Added

@@ -298,9 +298,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     }
     .theme-toggle:hover { color: var(--accent); }
 
-    /* ── FAB ── */
+    /* ── FAB ──
+       Sit just right of the 760px content column on wide screens; once the
+       viewport gets too narrow, clamp to ~1.5rem from the edge and overlap. */
     #fab {
-      position: fixed; bottom: 3.5rem; right: 1.5rem;
+      position: fixed; bottom: 3.5rem;
+      left: min(calc(50% + 380px + 0.75rem), calc(100vw - 4.7rem));
       width: 3.2rem; height: 3.2rem; border-radius: 50%;
       background: var(--accent); color: var(--accent-fg);
       border: none; font-size: 1.6rem; line-height: 1;
@@ -799,6 +802,14 @@ function setFilter(f) {
   render(document.getElementById('search').value);
 }
 
+// Re-render after an in-place edit (delete/move) without losing the scroll
+// position — render() rebuilds #journal wholesale, which otherwise jumps to top.
+function rerender() {
+  const y = window.scrollY;
+  render(document.getElementById('search').value);
+  window.scrollTo(0, y);
+}
+
 function updateStats() {
   const days    = journal.length;
   const topics  = journal.reduce((n, d) => n + d.topics.length, 0);
@@ -849,7 +860,7 @@ function makeDay(day, q) {
     if (!confirm(`Delete day "${day.date}" and all its topics?`)) return;
     journal = journal.filter(d => d.date !== day.date);
     markDirty();
-    render(document.getElementById('search').value);
+    rerender();
   };
 
   const topicsEl = frag.querySelector('.topics');
@@ -909,7 +920,7 @@ function makeTopic(date, topic, q) {
     const i = d.topics.findIndex(t => t.title === topic.title);
     if (i <= 0) return;
     [d.topics[i - 1], d.topics[i]] = [d.topics[i], d.topics[i - 1]];
-    markDirty(); render(document.getElementById('search').value);
+    markDirty(); rerender();
   };
   frag.querySelector('.move-down-btn').onclick = () => {
     const d = journal.find(d => d.date === date);
@@ -917,7 +928,7 @@ function makeTopic(date, topic, q) {
     const i = d.topics.findIndex(t => t.title === topic.title);
     if (i < 0 || i >= d.topics.length - 1) return;
     [d.topics[i], d.topics[i + 1]] = [d.topics[i + 1], d.topics[i]];
-    markDirty(); render(document.getElementById('search').value);
+    markDirty(); rerender();
   };
 
   // ── Delete ──
@@ -925,7 +936,7 @@ function makeTopic(date, topic, q) {
     if (!confirm(`Delete "${topic.title}"?`)) return;
     const d = journal.find(d => d.date === date);
     if (d) { d.topics = d.topics.filter(t => t.title !== topic.title); markDirty(); }
-    render(document.getElementById('search').value);
+    rerender();
   };
 
   // ── Editor open/close ──

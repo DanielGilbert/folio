@@ -396,6 +396,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     <div id="restore-hint">
       Unsaved changes from <strong id="restore-date"></strong>.
       <button onclick="restoreFromStorage()">Restore</button>
+      <button class="danger" onclick="forgetStorage()">Discard</button>
     </div>
     <a class="app-version" href="https://github.com/DanielGilbert/folio/blob/main/CHANGELOG.md" target="_blank" rel="noopener" title="View changelog on GitHub"></a>
   </div>
@@ -725,6 +726,12 @@ function restoreFromStorage() {
   fileHandle = null;
   init(localStorage.getItem(LS_CONTENT) || '');
   setStatus('Restored from local storage');
+}
+
+function forgetStorage() {
+  localStorage.removeItem(LS_CONTENT);
+  localStorage.removeItem(LS_TS);
+  document.getElementById('restore-hint').style.display = 'none';
 }
 
 // Auto-save to LS when dirty

@@ -1,3 +1,7 @@
+### Claude Code
+# Machine-specific local preview/launch config.
+.claude/launch.json
+
 ### macOS
 # Finder metadata
 .DS_Store
@@ -6,7 +10,7 @@
 ._*
 
 # Custom folder icons
-Icon
+Icon
 
 # Volume root files
 .DocumentRevisions-V100

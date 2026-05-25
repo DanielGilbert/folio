@@ -356,6 +356,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     /* ── Empty states ── */
     .no-topics { font-size: 0.85rem; color: var(--muted); padding: 0.5rem 0; }
     .no-results { color: var(--muted); text-align: center; padding: 3rem 1rem; }
+
+    /* ── Journals dialog ── */
+    .journals-list { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; max-height: 50vh; overflow-y: auto; }
+    .journals-list .muted { color: var(--muted); font-size: 0.85rem; padding: 0.5rem 0; }
+    .journal-item { display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left; }
+    .journal-item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .journal-item small { color: var(--muted); flex: none; }
   </style>
 </head>
 <body>
@@ -391,6 +398,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     <p>Your personal work journal. Open a <code>journal.md</code> or start fresh.</p>
     <div class="welcome-actions">
       <button class="primary" onclick="openFile()"><svg class="ic"><use href="#ic-folder"/></svg> Open file</button>
+      <button onclick="showConnect()"><svg class="ic"><use href="#ic-link"/></svg> Connect</button>
       <button onclick="newJournal()"><svg class="ic"><use href="#ic-sparkles"/></svg> Start fresh</button>
     </div>
     <div id="restore-hint">
@@ -418,6 +426,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
     <button id="btn-save" class="primary" onclick="saveFile()">Save</button>
     <button id="btn-download" onclick="downloadCurrent()" title="Download as journal.md" style="display:none"><svg class="ic"><use href="#ic-download"/></svg> Download</button>
     <button id="btn-open" onclick="openFile()" title="Open another file"><svg class="ic"><use href="#ic-folder"/></svg></button>
+    <button id="btn-connect" onclick="showConnect()" title="Connect to API / switch journal"><svg class="ic"><use href="#ic-link"/></svg></button>
   </header>
 
   <!-- Journal -->
@@ -549,6 +558,39 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
   </div>
 </dialog>
 
+<!-- Dialog: Journals (remote) -->
+<dialog id="dlg-journals">
+  <h3>Journals</h3>
+  <div id="journals-list" class="journals-list"></div>
+  <div class="field">
+    <label>New journal</label>
+    <input type="text" id="dlg-journal-new" placeholder="e.g. work" autocomplete="off">
+  </div>
+  <div class="dialog-footer">
+    <button class="ghost" onclick="openSettings()" style="margin-right:auto"><svg class="ic"><use href="#ic-settings"/></svg> Settings</button>
+    <button onclick="document.getElementById('dlg-journals').close()">Cancel</button>
+    <button class="primary" onclick="createRemoteJournal()">Create</button>
+  </div>
+</dialog>
+
+<!-- Dialog: API settings -->
+<dialog id="dlg-settings">
+  <h3>API connection</h3>
+  <div class="field">
+    <label>Endpoint</label>
+    <input type="url" id="set-api" placeholder="https://folio.example.com" autocomplete="off">
+  </div>
+  <div class="field">
+    <label>Token</label>
+    <input type="password" id="set-token" placeholder="Bearer token" autocomplete="off">
+  </div>
+  <p style="font-size:0.78rem;color:var(--muted)">Leave the endpoint blank to use this site's own origin.</p>
+  <div class="dialog-footer">
+    <button onclick="document.getElementById('dlg-settings').close()">Cancel</button>
+    <button class="primary" onclick="saveSettings()">Save</button>
+  </div>
+</dialog>
+
 <!-- Fallback file input -->
 <input type="file" id="file-input" accept=".md,text/plain" style="display:none">
 
@@ -566,6 +608,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.-->
 // ── State ──────────────────────────────────────────────────────────────────
 let journal   = [];      // [{ date: string, topics: [{ title, content }] }]
 let fileHandle = null;   // FileSystemFileHandle (FSA API)
+let remote     = null;   // { name, etag } when the open journal lives on a folio.api endpoint
 let isDirty    = false;
 let pendingDate = null;
 
@@ -573,6 +616,11 @@ const APP_VERSION = '1.2.1';
 const LS_CONTENT = 'folio_content';
 const LS_TS      = 'folio_ts';
 const LS_THEME   = 'folio_theme';
+const LS_API     = 'folio_api';     // runtime override for the API base URL
+const LS_TOKEN   = 'folio_token';   // bearer token for the API
+// Self-hosters can hardcode an API base here for zero-config; an empty value
+// falls back to the site's own origin (when served over http/https).
+const DEFAULT_API = '';
 const hasFSA     = 'showOpenFilePicker' in window;
 let currentFilter = 'all';
 let templates    = []; // [{ title, content }]
@@ -622,6 +670,7 @@ async function openFile() {
         types: [{ description: 'Markdown', accept: { 'text/plain': ['.md', '.txt'] } }],
       });
       fileHandle = handle;
+      remote = null;
       const file = await handle.getFile();
       init(await file.text());
       setFileStatus(handle.name);
@@ -637,6 +686,7 @@ document.getElementById('file-input').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
   fileHandle = null;
+  remote = null;
   init(await file.text());
   setFileStatus(file.name);
   e.target.value = '';
@@ -644,6 +694,7 @@ document.getElementById('file-input').addEventListener('change', async e => {
 
 function newJournal() {
   fileHandle = null;
+  remote = null;
   init('');
   setStatus('New journal');
   quickEntry();   // create today's entry and open the new-topic dialog right away
@@ -656,7 +707,7 @@ function init(markdown) {
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('app-header').style.display = 'flex';
   document.getElementById('journal').style.display = 'block';
-  document.getElementById('btn-download').style.display = fileHandle ? 'none' : '';
+  document.getElementById('btn-download').style.display = (fileHandle || remote) ? 'none' : '';
   document.getElementById('fab').style.display = 'block';
   updateSaveBtn();
   render();
@@ -667,6 +718,30 @@ async function saveFile() {
   // Always keep a local-storage backup, regardless of how saving goes.
   localStorage.setItem(LS_CONTENT, content);
   localStorage.setItem(LS_TS, new Date().toISOString());
+
+  // Remote journal: PUT to the API, guarding against a clobber with If-Match.
+  if (remote) {
+    isDirty = false; updateSaveBtn();
+    try {
+      remote.etag = await apiSave(remote.name, content, remote.etag);
+      setRemoteStatus();
+      flashBtn('✓ Saved');
+    } catch (e) {
+      isDirty = true; updateSaveBtn();
+      if (e.conflict) {
+        if (confirm('This journal changed on the server since you opened it.\n\nOK: reload the server version (your unsaved edits here are lost).\nCancel: keep your edits and overwrite the server on the next save.')) {
+          const loaded = await apiLoad(remote.name);
+          remote.etag = loaded.etag;
+          init(loaded.text);
+        } else {
+          remote.etag = null;   // drop the precondition → next save overwrites
+        }
+      } else {
+        alert('Save failed: ' + e.message);
+      }
+    }
+    return;
+  }
 
   // Chrome/Edge: if this journal isn't tied to a file yet, offer to save it to
   // disk. From then on we hold the handle and write straight to that file, so
@@ -711,6 +786,121 @@ function download(content) {
   URL.revokeObjectURL(a.href);
 }
 
+// ── Remote API (folio.api) ───────────────────────────────────────────────────
+// Endpoint resolution, highest priority first: a runtime override saved in
+// Settings, then a hardcoded DEFAULT_API, then the site's own origin (so a
+// bundled, same-origin deployment needs no config). file:// yields no base.
+function apiBase() {
+  return (localStorage.getItem(LS_API) || DEFAULT_API
+    || (location.protocol.startsWith('http') ? location.origin : '')).replace(/\/$/, '');
+}
+function apiToken()      { return localStorage.getItem(LS_TOKEN) || ''; }
+function apiConfigured() { return !!apiBase(); }
+
+function apiHeaders(extra) {
+  const t = apiToken();
+  return { ...(t ? { Authorization: 'Bearer ' + t } : {}), ...extra };
+}
+function journalUrl(name) {
+  return apiBase() + '/v1/journals/' + encodeURIComponent(name);
+}
+
+async function apiList() {
+  const r = await fetch(apiBase() + '/v1/journals', { headers: apiHeaders() });
+  if (!r.ok) throw new Error('List failed (' + r.status + ')');
+  return r.json();   // [{ name, size, modified, etag }]
+}
+
+async function apiLoad(name) {
+  const r = await fetch(journalUrl(name), { headers: apiHeaders() });
+  if (r.status === 404) return { text: '', etag: null };
+  if (!r.ok) throw new Error('Load failed (' + r.status + ')');
+  return { text: await r.text(), etag: r.headers.get('ETag') };
+}
+
+async function apiSave(name, content, etag) {
+  const r = await fetch(journalUrl(name), {
+    method: 'PUT',
+    headers: apiHeaders({ 'Content-Type': 'text/markdown', ...(etag ? { 'If-Match': etag } : {}) }),
+    body: content,
+  });
+  if (r.status === 412) { const e = new Error('Conflict'); e.conflict = true; throw e; }
+  if (!r.ok) throw new Error('Save failed (' + r.status + ')');
+  return r.headers.get('ETag');
+}
+
+// Open the connect dialog (or settings, if no endpoint is configured yet).
+async function showConnect() {
+  if (!apiConfigured()) { openSettings(); return; }
+  document.getElementById('dlg-journals').showModal();
+  await refreshJournalList();
+}
+
+async function refreshJournalList() {
+  const box = document.getElementById('journals-list');
+  box.innerHTML = '<p class="muted">Loading…</p>';
+  try {
+    const items = await apiList();
+    box.innerHTML = '';
+    if (!items.length) { box.innerHTML = '<p class="muted">No journals yet — create one below.</p>'; return; }
+    for (const it of items) {
+      const b = document.createElement('button');
+      b.className = 'journal-item';
+      b.innerHTML = `<svg class="ic"><use href="#ic-file"/></svg> <span>${esc(it.name)}</span>`
+        + `<small>${(it.size / 1024).toFixed(1)} KB</small>`;
+      b.onclick = () => { document.getElementById('dlg-journals').close(); openRemoteJournal(it.name); };
+      box.appendChild(b);
+    }
+  } catch (e) {
+    box.innerHTML = `<p class="muted">Could not reach the API: ${esc(e.message)}. Check Settings.</p>`;
+  }
+}
+
+async function openRemoteJournal(name) {
+  try {
+    const loaded = await apiLoad(name);
+    fileHandle = null;
+    remote = { name, etag: loaded.etag };
+    init(loaded.text);
+    setRemoteStatus();
+  } catch (e) {
+    alert('Could not open "' + name + '": ' + e.message);
+  }
+}
+
+function createRemoteJournal() {
+  const name = document.getElementById('dlg-journal-new').value.trim();
+  if (!name) return;
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(name)) {
+    alert('Name may contain only letters, numbers, dot, dash and underscore.');
+    return;
+  }
+  document.getElementById('dlg-journal-new').value = '';
+  document.getElementById('dlg-journals').close();
+  // Open an empty journal in remote mode; the first Save creates it server-side.
+  fileHandle = null;
+  remote = { name, etag: null };
+  init('');
+  setRemoteStatus();
+  quickEntry();
+}
+
+function openSettings() {
+  document.getElementById('dlg-journals').close();
+  document.getElementById('set-api').value   = localStorage.getItem(LS_API) || '';
+  document.getElementById('set-token').value = localStorage.getItem(LS_TOKEN) || '';
+  document.getElementById('dlg-settings').showModal();
+}
+
+function saveSettings() {
+  const api   = document.getElementById('set-api').value.trim().replace(/\/$/, '');
+  const token = document.getElementById('set-token').value;
+  api   ? localStorage.setItem(LS_API, api)     : localStorage.removeItem(LS_API);
+  token ? localStorage.setItem(LS_TOKEN, token) : localStorage.removeItem(LS_TOKEN);
+  document.getElementById('dlg-settings').close();
+  showConnect();
+}
+
 // ── Local Storage ──────────────────────────────────────────────────────────
 (function checkLS() {
   const saved = localStorage.getItem(LS_CONTENT);
@@ -724,6 +914,7 @@ function download(content) {
 
 function restoreFromStorage() {
   fileHandle = null;
+  remote = null;
   init(localStorage.getItem(LS_CONTENT) || '');
   setStatus('Restored from local storage');
 }
@@ -1338,6 +1529,12 @@ document.getElementById('dlg-topic').addEventListener('keydown', e => {
 document.getElementById('dlg-templates').addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); saveTemplates(); }
 });
+document.getElementById('dlg-journals').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); createRemoteJournal(); }
+});
+document.getElementById('dlg-settings').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); saveSettings(); }
+});
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const esc  = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1354,6 +1551,10 @@ function setStatus(text) {
 function setFileStatus(name) {
   document.getElementById('status-file').innerHTML =
     '<svg class="ic"><use href="#ic-file"/></svg> ' + esc(name);
+}
+function setRemoteStatus() {
+  document.getElementById('status-file').innerHTML =
+    '<svg class="ic"><use href="#ic-link"/></svg> ' + esc(remote.name) + ' · remote';
 }
 </script>
 </body>

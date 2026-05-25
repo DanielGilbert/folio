@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Restorable entries can now be discarded.
+- Optional API backend: connect _folio.html_ to a [_folio.api_](https://github.com/folio-html/folio.api) endpoint to load and save journals over HTTP. Supports multiple named journals and optimistic-concurrency conflict handling (`ETag` / `If-Match`), prompting before overwriting a journal that changed on the server. The endpoint defaults to the site's own origin and can be overridden, along with a bearer token, in Settings.
 
 ## [1.2.1] - 2026-05-22
 

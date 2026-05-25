@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-26
+
 ### Added
 
 - Restorable entries can now be discarded.
 - Optional API backend: connect _folio.html_ to a [_folio.api_](https://github.com/folio-html/folio.api) endpoint to load and save journals over HTTP. Supports multiple named journals and optimistic-concurrency conflict handling (`ETag` / `If-Match`), prompting before overwriting a journal that changed on the server. The endpoint defaults to the site's own origin and can be overridden, along with a bearer token, in Settings.
+
+### Fixed
+
+- Dialog inputs are now 16px, so iOS Safari no longer zooms the viewport in when a field receives focus (most noticeable when the Journals dialog auto-focused its input on "Connect"). Also set `text-size-adjust` to stop iOS from auto-inflating text.
 
 ## [1.2.1] - 2026-05-22
 
@@ -60,7 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic local-storage backup with a restore prompt, plus an unsaved-changes warning before leaving the page.
 - Light and dark themes following the system preference.
 
-[Unreleased]: https://github.com/folio-html/folio.html/compare/1.2.1...HEAD
+[Unreleased]: https://github.com/folio-html/folio.html/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/folio-html/folio.html/compare/1.2.1...1.3.0
 [1.2.1]: https://github.com/folio-html/folio.html/compare/1.2.0...1.2.1
 [1.2.0]: https://github.com/folio-html/folio.html/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/folio-html/folio.html/compare/1.0.0...1.1.0
